@@ -1,0 +1,7 @@
+.env
+.idea/
+data/
+.wippy/
+runtime/
+.build/
+.context/

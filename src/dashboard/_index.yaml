@@ -1,0 +1,70 @@
+version: "1.0"
+namespace: app.lc.dashboard
+
+entries:
+  # ── Dashboard Page Template ─────────────────────────────
+  - name: dashboard_page
+    kind: template.jet
+    set: app.lc:templates
+    source: file://dashboard.jet
+    meta:
+      type: view.page
+      title: "League Client"
+      path: /
+    data_func: app.lc.dashboard:page_data
+
+  # ── Page Data Function ──────────────────────────────────
+  - name: page_data
+    kind: function.lua
+    source: file://handlers/page_data.lua
+    method: handler
+
+  # ── Page Render Handler ─────────────────────────────────
+  - name: page
+    kind: function.lua
+    source: file://handlers/page.lua
+    method: handler
+    modules: [http]
+    imports:
+      renderer: wippy.views:renderer
+
+  - name: page.endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /
+    func: app.lc.dashboard:page
+
+  # ── WebSocket Router ────────────────────────────────────
+  - name: ws_router
+    kind: http.router
+    meta:
+      server: app.lc:gateway
+    prefix: /ws
+    post_middleware:
+      - websocket_relay
+    post_options:
+      wsrelay.allowed.origins: "*"
+
+  # ── WS Connect Handler ─────────────────────────────────
+  - name: ws_connect
+    kind: function.lua
+    source: file://handlers/ws_connect.lua
+    method: handler
+    modules: [http, json]
+
+  - name: ws_connect.endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc.dashboard:ws_router
+    method: GET
+    path: /updates
+    func: app.lc.dashboard:ws_connect
+
+  # ── Dashboard Session Process ───────────────────────────
+  - name: session_process
+    kind: process.lua
+    source: file://session.lua
+    method: main
+    modules: [json, logger, time, events, contract]

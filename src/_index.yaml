@@ -1,0 +1,266 @@
+version: "1.0"
+namespace: app.lc
+
+entries:
+  # ── Infrastructure ────────────────────────────────────
+  - name: db
+    kind: db.sql.sqlite
+    file: "./data/league.db"
+    lifecycle:
+      auto_start: true
+
+  - name: processes
+    kind: process.host
+    host:
+      workers: 16
+    lifecycle:
+      auto_start: true
+
+  # ── Environment ───────────────────────────────────────
+  - name: file_env
+    kind: env.storage.file
+    file_path: .env
+    auto_create: true
+
+  - name: riot_api_key
+    kind: env.variable
+    variable: RIOT_API_KEY
+    storage: app.lc:file_env
+
+  - name: riot_platform
+    kind: env.variable
+    variable: RIOT_PLATFORM
+    storage: app.lc:file_env
+
+  - name: riot_region
+    kind: env.variable
+    variable: RIOT_REGION
+    storage: app.lc:file_env
+
+  - name: discord_webhook_url
+    kind: env.variable
+    variable: DISCORD_WEBHOOK_URL
+    storage: app.lc:file_env
+
+  # ── Riot API Functions ───────────────────────────────
+  - name: riot_api_get_account
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_account
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_summoner
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_summoner
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_ranked
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_ranked
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_mastery
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_mastery
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_matches
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_matches
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_match
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_match
+    modules: [http_client, json, env]
+
+  # ── Data Dragon Functions ────────────────────────────
+  - name: ddragon_get_version
+    kind: function.lua
+    source: file://api/data_dragon.lua
+    method: get_latest_version
+    modules: [http_client, json]
+
+  - name: ddragon_get_champions
+    kind: function.lua
+    source: file://api/data_dragon.lua
+    method: get_champions
+    modules: [http_client, json]
+
+  # ── Supervisor ───────────────────────────────────────
+  - name: supervisor_process
+    kind: process.lua
+    source: file://supervisor.lua
+    method: main
+    modules:
+      - logger
+      - registry
+      - time
+
+  - name: supervisor
+    kind: process.service
+    process: app.lc:supervisor_process
+    host: app.lc:processes
+    lifecycle:
+      auto_start: true
+      depends_on:
+        - app.lc:db
+      restart:
+        max_attempts: 10
+        initial_delay: 2s
+        max_delay: 60s
+        backoff_factor: 2.0
+
+  # ── Fetcher (generic, spawned per player) ────────────
+  - name: fetcher
+    kind: process.lua
+    source: file://fetcher.lua
+    method: main
+    modules:
+      - logger
+      - time
+      - funcs
+      - events
+      - env
+
+  # ── Data Manager ─────────────────────────────────────
+  - name: data_manager_process
+    kind: process.lua
+    source: file://data_manager.lua
+    method: main
+    modules:
+      - logger
+      - events
+      - contract
+      - time
+
+  - name: data_manager
+    kind: process.service
+    process: app.lc:data_manager_process
+    host: app.lc:processes
+    lifecycle:
+      auto_start: true
+      depends_on:
+        - app.lc:db
+      restart:
+        max_attempts: 10
+        initial_delay: 2s
+        max_delay: 60s
+        backoff_factor: 2.0
+
+  # ── Discord Notifier ─────────────────────────────────
+  - name: discord_notifier_process
+    kind: process.lua
+    source: file://discord_notifier.lua
+    method: main
+    modules:
+      - logger
+      - events
+      - env
+      - http_client
+      - json
+
+  - name: discord_notifier
+    kind: process.service
+    process: app.lc:discord_notifier_process
+    host: app.lc:processes
+    lifecycle:
+      auto_start: true
+      restart:
+        max_attempts: 10
+        initial_delay: 2s
+        max_delay: 60s
+        backoff_factor: 2.0
+
+  # ── Tracked Players ─────────────────────────────────
+  - name: player_grishka
+    kind: registry.entry
+    meta:
+      type: player
+      game_name: Гришка Big Шишка
+      tag_line: GiBi
+      platform: RU
+      region: EUROPE
+      fetch_interval: "10m"
+      discord_notify: true
+
+  # ── HTTP Infrastructure ──────────────────────────────
+  - name: gateway
+    kind: http.service
+    addr: ":8080"
+    lifecycle:
+      auto_start: true
+
+  - name: router_http
+    kind: http.router
+    meta:
+      server: app.lc:gateway
+    prefix: /
+
+  # ── API Endpoints ────────────────────────────────────
+  - name: api_search
+    kind: function.lua
+    source: file://dashboard/handlers/api_search.lua
+    method: handler
+    modules: [http, json, funcs, env, contract]
+
+  - name: api_search_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/search
+    func: app.lc:api_search
+
+  - name: api_player
+    kind: function.lua
+    source: file://dashboard/handlers/api_player.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_player_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/player/{puuid}
+    func: app.lc:api_player
+
+  - name: api_recent_searches
+    kind: function.lua
+    source: file://dashboard/handlers/api_recent_searches.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_recent_searches_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/recent-searches
+    func: app.lc:api_recent_searches
+
+  # ── Templates ────────────────────────────────────────
+  - name: templates
+    kind: template.set
+
+  - name: layout
+    kind: template.jet
+    set: app.lc:templates
+    source: file://templates/layout.jet
+
+  # ── Dependencies ─────────────────────────────────────
+  - name: views
+    kind: ns.dependency
+    component: wippy/views
+    version: "*"
+    parameters:
+      - name: env_storage
+        value: app.lc:file_env
+      - name: api_router
+        value: app.lc:router_http

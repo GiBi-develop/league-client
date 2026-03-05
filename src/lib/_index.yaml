@@ -1,0 +1,131 @@
+version: "1.0"
+namespace: app.lc.lib
+
+entries:
+  # ── Contract: Player Storage ─────────────────────────
+  # Persistence layer for player data.
+  #
+  # Usage:
+  #   local contract = require("contract")
+  #   local svc = contract.open("app.lc.lib:player_storage")
+  #   svc:get_player({puuid = "..."})
+  #   svc:save_player({puuid = ..., game_name = ..., ...})
+  #   svc:save_matches({puuid = ..., matches = {...}})
+  - name: players
+    kind: contract.definition
+    methods:
+      - name: init_schema
+        description: Initialize DB schema (idempotent, called on startup)
+      - name: get_player
+        description: Get player profile by PUUID
+      - name: save_player
+        description: Save or update player profile data
+      - name: get_ranked
+        description: Get player ranked data by PUUID
+      - name: save_ranked
+        description: Save or update player ranked data
+      - name: get_mastery
+        description: Get player champion mastery by PUUID
+      - name: save_mastery
+        description: Save or update champion mastery data
+      - name: get_matches
+        description: Get recent matches for a player
+      - name: save_match
+        description: Save a match record
+      - name: list_tracked_players
+        description: List all tracked players with their data
+      - name: save_recent_search
+        description: Save a recent player search
+      - name: get_recent_searches
+        description: Get recent searches with ranked data
+
+  - name: players_init_schema
+    kind: function.lua
+    source: file://players.lua
+    method: init_schema
+    modules: [sql]
+
+  - name: players_get_player
+    kind: function.lua
+    source: file://players.lua
+    method: get_player
+    modules: [sql]
+
+  - name: players_save_player
+    kind: function.lua
+    source: file://players.lua
+    method: save_player
+    modules: [sql]
+
+  - name: players_get_ranked
+    kind: function.lua
+    source: file://players.lua
+    method: get_ranked
+    modules: [sql]
+
+  - name: players_save_ranked
+    kind: function.lua
+    source: file://players.lua
+    method: save_ranked
+    modules: [sql]
+
+  - name: players_get_mastery
+    kind: function.lua
+    source: file://players.lua
+    method: get_mastery
+    modules: [sql]
+
+  - name: players_save_mastery
+    kind: function.lua
+    source: file://players.lua
+    method: save_mastery
+    modules: [sql]
+
+  - name: players_get_matches
+    kind: function.lua
+    source: file://players.lua
+    method: get_matches
+    modules: [sql]
+
+  - name: players_save_match
+    kind: function.lua
+    source: file://players.lua
+    method: save_match
+    modules: [sql, json]
+
+  - name: players_list_tracked
+    kind: function.lua
+    source: file://players.lua
+    method: list_tracked_players
+    modules: [sql]
+
+  - name: players_save_recent_search
+    kind: function.lua
+    source: file://players.lua
+    method: save_recent_search
+    modules: [sql]
+
+  - name: players_get_recent_searches
+    kind: function.lua
+    source: file://players.lua
+    method: get_recent_searches
+    modules: [sql]
+
+  - name: player_storage
+    kind: contract.binding
+    contracts:
+      - contract: app.lc.lib:players
+        default: true
+        methods:
+          init_schema: app.lc.lib:players_init_schema
+          get_player: app.lc.lib:players_get_player
+          save_player: app.lc.lib:players_save_player
+          get_ranked: app.lc.lib:players_get_ranked
+          save_ranked: app.lc.lib:players_save_ranked
+          get_mastery: app.lc.lib:players_get_mastery
+          save_mastery: app.lc.lib:players_save_mastery
+          get_matches: app.lc.lib:players_get_matches
+          save_match: app.lc.lib:players_save_match
+          list_tracked_players: app.lc.lib:players_list_tracked
+          save_recent_search: app.lc.lib:players_save_recent_search
+          get_recent_searches: app.lc.lib:players_get_recent_searches

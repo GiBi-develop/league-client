@@ -1,0 +1,7 @@
+directories:
+    modules: .wippy
+    src: ./src
+modules:
+    - name: wippy/views
+      version: 0.4.24
+      hash: 28d949521e24bfb722ba5dc951b4740bcd9ffea0dbbc7a1b4e968ca79ce7d951

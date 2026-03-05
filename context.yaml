@@ -1,0 +1,89 @@
+$schema: 'https://raw.githubusercontent.com/context-hub/generator/refs/heads/main/json-schema.json'
+
+import:
+  - url: https://gist.githubusercontent.com/butschster/29e84fb9c976ac837181141f88049a35/raw/ed38539950f8c9c45ca8c67f9e026a837c97bc66/01-dev-prompts.yaml
+    type: url
+
+projects:
+  - name: docs
+    path: ../docs
+    description: Wippy docs
+  - name: examples
+    path: ../examples
+    description: Wippy examples
+
+tools:
+  - id: wippy-toc
+    description: |
+      Get the complete table of contents for Wippy documentation.
+    type: http
+    requests:
+      - url: "https://wippy.ai/llm/toc"
+        method: "GET"
+        headers:
+          Accept: "application/json"
+
+  - id: wippy-search
+    description: |
+      Search Wippy documentation for specific topics.
+    type: http
+    schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: "Search query"
+      required: [ "query" ]
+    requests:
+      - url: "https://wippy.ai/llm/search"
+        method: "GET"
+        headers:
+          Accept: "application/json"
+        query:
+          q: "{{query}}"
+
+  - id: wippy-page
+    description: |
+      Fetch full content of a documentation page by its path.
+    type: http
+    schema:
+      type: object
+      properties:
+        path:
+          type: string
+          description: "Documentation path"
+      required: [ "path" ]
+    requests:
+      - url: "https://wippy.ai/llm/path/en/{{path}}"
+        method: "GET"
+        headers:
+          Accept: "text/plain"
+
+  - id: wippy-context
+    description: |
+      Batch fetch multiple documentation pages.
+    type: http
+    schema:
+      type: object
+      properties:
+        paths:
+          type: string
+          description: "Comma-separated paths"
+      required: [ "paths" ]
+    requests:
+      - url: "https://wippy.ai/llm/context"
+        method: "GET"
+        headers:
+          Accept: "text/plain"
+        query:
+          paths: "{{paths}}"
+
+exclude:
+  patterns:
+    - ".env*"
+  paths:
+    - ".claude"
+    - ".context"
+    - ".build"
+    - ".wippy"
+    - "runtime"

@@ -633,22 +633,22 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     return 'https://ddragon.leagueoflegends.com/cdn/' + currentDdVersion + '/img/item/' + itemId + '.png';
   }
 
-  // Queue ID classification
-  function queueCategory(qid) {
-    if (qid === 420) return 'solo';
-    if (qid === 440) return 'flex';
-    if (qid === 450 || qid === 900) return 'aram';
+  // Queue ID classification — use game_mode for ARAM variants (Mayhem, etc.)
+  function queueCategory(m) {
+    if (m.queue_id === 420) return 'solo';
+    if (m.queue_id === 440) return 'flex';
+    if (m.game_mode === 'ARAM' || m.queue_id === 450 || m.queue_id === 900) return 'aram';
     return 'other';
   }
 
-  function queueLabel(qid) {
-    if (qid === 420) return 'Solo/Duo';
-    if (qid === 440) return 'Flex';
-    if (qid === 450) return 'ARAM';
-    if (qid === 900) return 'ARURF';
-    if (qid === 1700) return 'Arena';
-    if (qid === 490) return 'Quick Play';
-    return 'Normal';
+  function queueLabel(m) {
+    if (m.queue_id === 420) return 'Solo/Duo';
+    if (m.queue_id === 440) return 'Flex';
+    if (m.game_mode === 'ARAM') return 'ARAM';
+    if (m.queue_id === 900) return 'ARURF';
+    if (m.queue_id === 1700) return 'Arena';
+    if (m.queue_id === 490) return 'Quick Play';
+    return m.game_mode || 'Normal';
   }
 
   // ── Connection ──────────────────────────────────────────
@@ -1025,7 +1025,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     if (filter === 'all') return allMatches;
     var result = [];
     for (var i = 0; i < allMatches.length; i++) {
-      if (queueCategory(allMatches[i].queue_id) === filter) {
+      if (queueCategory(allMatches[i]) === filter) {
         result.push(allMatches[i]);
       }
     }
@@ -1078,7 +1078,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         ? '<td class="col-champ"><div class="col-champ-wrap"><img class="col-champ-icon" src="' + esc(m.champion_image) + '" />' + esc(m.champion_name || 'Unknown') + '</div></td>'
         : '<td class="col-champ">' + esc(m.champion_name || 'Unknown') + '</td>';
 
-      var ql = queueLabel(m.queue_id);
+      var ql = queueLabel(m);
 
       var tr = document.createElement('tr');
       tr.className = 'match-row';

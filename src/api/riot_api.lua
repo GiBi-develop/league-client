@@ -153,6 +153,21 @@ local function get_match(meta)
     return api_request(url)
 end
 
+--- Get player challenges data by PUUID.
+--- Input: {puuid = "...", platform? = "EUW1"}
+--- Returns: {totalPoints, categoryPoints, preferences, challenges}
+local function get_challenges(meta)
+    if not meta or not meta.puuid then
+        return nil, "puuid is required"
+    end
+
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/challenges/v1/player-data/" .. meta.puuid
+
+    return api_request(url)
+end
+
 return {
     get_account = get_account,
     get_summoner = get_summoner,
@@ -160,4 +175,5 @@ return {
     get_mastery = get_mastery,
     get_matches = get_matches,
     get_match = get_match,
+    get_challenges = get_challenges,
 }

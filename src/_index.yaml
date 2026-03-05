@@ -79,6 +79,12 @@ entries:
     method: get_match
     modules: [http_client, json, env]
 
+  - name: riot_api_get_challenges
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_challenges
+    modules: [http_client, json, env]
+
   # ── Data Dragon Functions ────────────────────────────
   - name: ddragon_get_version
     kind: function.lua

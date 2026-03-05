@@ -140,9 +140,37 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
   border: 3px solid var(--gold);
 }
 
+.profile-info { flex: 1; }
 .profile-info h2 { font-size: 22px; font-weight: 700; color: var(--text); }
 .profile-info h2 span { color: var(--text-muted); font-weight: 400; font-size: 16px; }
 .profile-info .level { font-size: 13px; color: var(--text-muted); }
+
+.challenge-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.challenge-badge .cl-level {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.challenge-badge .cl-level.IRON { color: #8B8B8B; }
+.challenge-badge .cl-level.BRONZE { color: #CD7F32; }
+.challenge-badge .cl-level.SILVER { color: #C0C0C0; }
+.challenge-badge .cl-level.GOLD { color: var(--gold); }
+.challenge-badge .cl-level.PLATINUM { color: #1FACC5; }
+.challenge-badge .cl-level.DIAMOND { color: #A855F7; }
+.challenge-badge .cl-level.MASTER { color: #F472B6; }
+.challenge-badge .cl-level.GRANDMASTER { color: #EF4444; }
+.challenge-badge .cl-level.CHALLENGER { color: #F59E0B; }
 
 /* Ranked Cards */
 .ranked-grid {
@@ -226,7 +254,7 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
   border-radius: 2px;
 }
 
-/* Matches Table */
+/* Matches Section */
 .table-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -240,6 +268,8 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
   justify-content: space-between;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .section-title {
@@ -259,11 +289,32 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
   letter-spacing: 0.06em;
 }
 
+/* Queue Filter Tabs */
+.queue-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.queue-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+.queue-tab:hover { border-color: var(--gold); color: var(--text); }
+.queue-tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
 table { width: 100%; border-collapse: collapse; }
 
 th {
   text-align: left;
-  padding: 9px 16px;
+  padding: 9px 12px;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
@@ -274,14 +325,13 @@ th {
 }
 
 td {
-  padding: 10px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   font-size: 13px;
 }
 
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(200, 155, 60, 0.035); }
 
 .badge {
   display: inline-block;
@@ -296,7 +346,7 @@ tr:hover td { background: rgba(200, 155, 60, 0.035); }
 .badge-win { background: rgba(34, 197, 94, 0.08); color: var(--green); border-color: rgba(34, 197, 94, 0.2); }
 .badge-loss { background: rgba(239, 68, 68, 0.08); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
 
-.kda { font-family: var(--font-mono); font-size: 13px; }
+.kda { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
 .kda-perfect { color: var(--gold); }
 .kda-good { color: var(--green); }
 .kda-ok { color: var(--text); }
@@ -313,16 +363,40 @@ tr:hover td { background: rgba(200, 155, 60, 0.035); }
 .col-vision { font-size: 12px; color: var(--text-muted); }
 .col-duration { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
 
+/* Items */
+.item-row { display: flex; gap: 2px; flex-wrap: nowrap; }
+.item-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.item-empty {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+}
+
+/* Summoner Spells */
+.spell-row { display: flex; gap: 2px; flex-direction: column; }
+.spell-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
 /* Match detail row (expandable) */
 .match-row { cursor: pointer; }
 .match-row:hover td { background: rgba(200, 155, 60, 0.05); }
 .match-detail-row td { padding: 0 !important; border-bottom: 1px solid var(--border); background: transparent !important; }
 .match-detail-row.hidden { display: none; }
 .match-detail {
-  padding: 12px 16px;
+  padding: 16px 20px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
   background: rgba(0, 0, 0, 0.15);
 }
 .team-block { }
@@ -340,15 +414,40 @@ tr:hover td { background: rgba(200, 155, 60, 0.035); }
 .team-player {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 5px 0;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.team-player:last-child { border-bottom: none; }
+.team-player.is-me { font-weight: 600; color: var(--gold); }
+.team-player-champ { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.team-player-icon { width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0; }
+.team-player-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
 }
-.team-player.is-me { font-weight: 600; color: var(--gold); }
-.team-player-icon { width: 22px; height: 22px; border-radius: 3px; }
-.team-player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.team-player-kda { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
-.team-player-dmg { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); min-width: 45px; text-align: right; }
+.team-player-spells { display: flex; gap: 1px; flex-shrink: 0; }
+.team-player-spells img { width: 16px; height: 16px; border-radius: 2px; }
+.team-player-items { display: flex; gap: 1px; flex-shrink: 0; }
+.team-player-items img { width: 18px; height: 18px; border-radius: 2px; }
+.team-player-items .item-empty-sm { width: 18px; height: 18px; border-radius: 2px; background: rgba(255,255,255,0.03); }
+.team-player-stats {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.team-player-stats .stat-kda { min-width: 60px; }
+.team-player-stats .stat-dmg { min-width: 42px; text-align: right; }
+.team-player-stats .stat-cs { min-width: 30px; text-align: right; }
+.team-player-stats .stat-gold { min-width: 42px; text-align: right; color: var(--gold); }
 
 /* Loading */
 .loading { text-align: center; padding: 40px; color: var(--text-muted); }
@@ -413,7 +512,10 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   .ranked-grid { grid-template-columns: 1fr; }
   .mastery-grid { grid-template-columns: 1fr; }
   table { font-size: 12px; }
-  th, td { padding: 8px 10px; }
+  th, td { padding: 8px 8px; }
+  .match-detail { grid-template-columns: 1fr; }
+  .team-player-items { display: none; }
+  .queue-tabs { flex-wrap: wrap; }
 }
 </style>
 {{end}}
@@ -451,6 +553,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       <div class="profile-info">
         <h2 id="profile-name">Name <span id="profile-tag">#TAG</span></h2>
         <div class="level" id="profile-level">Level —</div>
+        <div id="profile-challenges"></div>
       </div>
     </div>
 
@@ -466,6 +569,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   <div class="table-wrap" id="matches-section" style="display:none;">
     <div class="table-header">
       <div class="table-title">Recent Matches</div>
+      <div class="queue-tabs" id="queue-tabs">
+        <button class="queue-tab active" data-filter="all">All</button>
+        <button class="queue-tab" data-filter="solo">Solo/Duo</button>
+        <button class="queue-tab" data-filter="flex">Flex</button>
+        <button class="queue-tab" data-filter="aram">ARAM</button>
+        <button class="queue-tab" data-filter="other">Other</button>
+      </div>
     </div>
     <table>
       <thead>
@@ -473,12 +583,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           <th>Result</th>
           <th>Champion</th>
           <th>KDA</th>
+          <th>Items</th>
           <th>CS</th>
           <th>Damage</th>
           <th>Gold</th>
           <th>Vision</th>
-          <th>Position</th>
-          <th>Duration</th>
+          <th>Pos</th>
+          <th>Time</th>
         </tr>
       </thead>
       <tbody id="matches-list"></tbody>
@@ -498,6 +609,47 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   var ws = null;
   var reconnectDelay = 1000;
   var MAX_DELAY = 30000;
+  var currentDdVersion = '14.5.1';
+  var allMatches = [];
+  var currentFilter = 'all';
+
+  // ── Summoner Spell ID mapping ────────────────────────
+  var SPELL_MAP = {
+    1: 'SummonerBoost', 3: 'SummonerExhaust', 4: 'SummonerFlash',
+    6: 'SummonerHaste', 7: 'SummonerHeal', 11: 'SummonerSmite',
+    12: 'SummonerTeleport', 14: 'SummonerDot', 21: 'SummonerBarrier',
+    32: 'SummonerSnowball', 39: 'SummonerSnowURFSnowball_Mark',
+    2202: 'SummonerCherryFlash', 2201: 'SummonerCherryHold'
+  };
+
+  function spellImg(spellId) {
+    var name = SPELL_MAP[spellId];
+    if (!name) return '';
+    return 'https://ddragon.leagueoflegends.com/cdn/' + currentDdVersion + '/img/spell/' + name + '.png';
+  }
+
+  function itemImg(itemId) {
+    if (!itemId || itemId === 0) return '';
+    return 'https://ddragon.leagueoflegends.com/cdn/' + currentDdVersion + '/img/item/' + itemId + '.png';
+  }
+
+  // Queue ID classification
+  function queueCategory(qid) {
+    if (qid === 420) return 'solo';
+    if (qid === 440) return 'flex';
+    if (qid === 450 || qid === 900) return 'aram';
+    return 'other';
+  }
+
+  function queueLabel(qid) {
+    if (qid === 420) return 'Solo/Duo';
+    if (qid === 440) return 'Flex';
+    if (qid === 450) return 'ARAM';
+    if (qid === 900) return 'ARURF';
+    if (qid === 1700) return 'Arena';
+    if (qid === 490) return 'Quick Play';
+    return 'Normal';
+  }
 
   // ── Connection ──────────────────────────────────────────
 
@@ -656,6 +808,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       .then(function (data) {
         showLoading(false);
         document.getElementById('btn-search').disabled = false;
+        if (data.dd_version) currentDdVersion = data.dd_version;
         renderProfile(data);
         loadRecentSearches();
       })
@@ -677,6 +830,19 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     document.getElementById('profile-name').innerHTML = esc(acc.game_name) + ' <span>#' + esc(acc.tag_line) + '</span>';
     document.getElementById('profile-level').textContent = 'Level ' + (sum.level || '—');
     document.getElementById('profile-icon').src = sum.profile_icon_url || '';
+
+    // Challenges
+    var chEl = document.getElementById('profile-challenges');
+    chEl.innerHTML = '';
+    var ch = data.challenges;
+    if (ch && ch.level) {
+      chEl.innerHTML =
+        '<div class="challenge-badge">' +
+          'Challenges: <span class="cl-level ' + esc(ch.level) + '">' + esc(ch.level) + '</span>' +
+          ' <span class="muted">' + (ch.current || 0) + ' / ' + (ch.max || 0) + ' pts</span>' +
+          (ch.percentile != null ? ' <span class="muted">(Top ' + Math.round(ch.percentile * 100) + '%)</span>' : '') +
+        '</div>';
+    }
 
     // Ranked
     var grid = document.getElementById('ranked-grid');
@@ -707,7 +873,10 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     renderMastery(data.mastery || []);
 
     // Matches
-    renderMatches(data.matches || []);
+    allMatches = data.matches || [];
+    currentFilter = 'all';
+    setActiveTab('all');
+    renderMatches(allMatches);
   }
 
   function renderMastery(mastery) {
@@ -725,7 +894,6 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
               : m.championPoints >= 1000 ? Math.round(m.championPoints / 1000) + 'k'
               : m.championPoints;
 
-      // Progress to next level
       var progressPct = 0;
       var sinceLevel = m.championPointsSinceLastLevel || 0;
       var untilNext = m.championPointsUntilNextLevel || 0;
@@ -784,6 +952,31 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     return '';
   }
 
+  function renderItemsRow(items) {
+    var html = '<div class="item-row">';
+    for (var i = 0; i < 7; i++) {
+      var id = items && items[i] ? items[i] : 0;
+      if (id > 0) {
+        html += '<img class="item-icon" src="' + itemImg(id) + '" />';
+      } else {
+        html += '<div class="item-empty"></div>';
+      }
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderPlayerItems(items) {
+    var html = '';
+    if (!items || items.length === 0) return html;
+    for (var i = 0; i < items.length && i < 7; i++) {
+      if (items[i] > 0) {
+        html += '<img src="' + itemImg(items[i]) + '" />';
+      }
+    }
+    return html;
+  }
+
   function renderTeamPlayers(players) {
     var html = '';
     for (var i = 0; i < players.length; i++) {
@@ -793,28 +986,77 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         ? '<img class="team-player-icon" src="' + esc(p.champion_image) + '" />'
         : '<div class="team-player-icon" style="background:var(--border);"></div>';
       var posStr = formatPos(p.position);
+
+      var spellsHtml = '';
+      var s1 = spellImg(p.summoner1);
+      var s2 = spellImg(p.summoner2);
+      if (s1 || s2) {
+        spellsHtml = '<div class="team-player-spells">';
+        if (s1) spellsHtml += '<img src="' + s1 + '" />';
+        if (s2) spellsHtml += '<img src="' + s2 + '" />';
+        spellsHtml += '</div>';
+      }
+
+      var itemsHtml = '<div class="team-player-items">' + renderPlayerItems(p.items) + '</div>';
+
       html += '<div class="' + cls + '">' +
-        icon +
-        '<span class="team-player-name">' + esc(p.champion_name || '?') + ' <span class="muted">' + esc(p.summoner_name || '') + '</span></span>' +
-        (posStr ? '<span class="muted" style="font-size:10px;min-width:28px;">' + posStr + '</span>' : '') +
-        '<span class="team-player-kda">' + p.kills + '/' + p.deaths + '/' + p.assists + '</span>' +
-        '<span class="team-player-dmg">' + fmtNumber(p.total_damage) + '</span>' +
+        '<div class="team-player-champ">' +
+          icon +
+          '<span class="team-player-name">' +
+            esc(p.champion_name || '?') +
+            (posStr ? ' <span class="muted" style="font-size:10px;">(' + posStr + ')</span>' : '') +
+            ' <span class="muted" style="font-size:10px;">' + esc(p.summoner_name || '') + '</span>' +
+          '</span>' +
+        '</div>' +
+        spellsHtml +
+        itemsHtml +
+        '<div class="team-player-stats">' +
+          '<span class="stat-kda">' + p.kills + '/' + p.deaths + '/' + p.assists + '</span>' +
+          '<span class="stat-cs">' + (p.cs || 0) + '</span>' +
+          '<span class="stat-dmg">' + fmtNumber(p.total_damage) + '</span>' +
+          '<span class="stat-gold">' + fmtNumber(p.gold_earned) + '</span>' +
+        '</div>' +
       '</div>';
     }
     return html;
+  }
+
+  function filterMatches(filter) {
+    if (filter === 'all') return allMatches;
+    var result = [];
+    for (var i = 0; i < allMatches.length; i++) {
+      if (queueCategory(allMatches[i].queue_id) === filter) {
+        result.push(allMatches[i]);
+      }
+    }
+    return result;
+  }
+
+  function setActiveTab(filter) {
+    var tabs = document.querySelectorAll('.queue-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('active', tabs[i].getAttribute('data-filter') === filter);
+    }
   }
 
   function renderMatches(matches) {
     var section = document.getElementById('matches-section');
     var tbody = document.getElementById('matches-list');
 
-    if (matches.length === 0) {
+    if (allMatches.length === 0) {
       section.style.display = 'none';
       return;
     }
 
     section.style.display = '';
     tbody.innerHTML = '';
+
+    if (matches.length === 0) {
+      var emptyTr = document.createElement('tr');
+      emptyTr.innerHTML = '<td colspan="10" class="muted" style="text-align:center;padding:20px;">No matches in this category</td>';
+      tbody.appendChild(emptyTr);
+      return;
+    }
 
     for (var i = 0; i < matches.length; i++) {
       var m = matches[i];
@@ -836,12 +1078,15 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         ? '<td class="col-champ"><div class="col-champ-wrap"><img class="col-champ-icon" src="' + esc(m.champion_image) + '" />' + esc(m.champion_name || 'Unknown') + '</div></td>'
         : '<td class="col-champ">' + esc(m.champion_name || 'Unknown') + '</td>';
 
+      var ql = queueLabel(m.queue_id);
+
       var tr = document.createElement('tr');
       tr.className = 'match-row';
       tr.innerHTML =
-        '<td><span class="badge ' + (m.win ? 'badge-win' : 'badge-loss') + '">' + (m.win ? 'W' : 'L') + '</span></td>' +
+        '<td><span class="badge ' + (m.win ? 'badge-win' : 'badge-loss') + '">' + (m.win ? 'W' : 'L') + '</span> <span class="muted" style="font-size:10px;">' + esc(ql) + '</span></td>' +
         champCell +
         '<td class="kda ' + kdaClass + '">' + k + '/' + d + '/' + a + ' <span class="muted">(' + kdaVal + ')</span></td>' +
+        '<td>' + renderItemsRow(m.items) + '</td>' +
         '<td class="col-cs">' + (m.cs || 0) + ' <span class="muted">(' + (m.cs_per_min || 0) + '/m)</span></td>' +
         '<td class="col-dmg">' + fmtNumber(m.total_damage) + '</td>' +
         '<td class="col-gold">' + fmtNumber(m.gold_earned) + '</td>' +
@@ -854,7 +1099,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       var detailTr = document.createElement('tr');
       detailTr.className = 'match-detail-row hidden';
       var detailTd = document.createElement('td');
-      detailTd.colSpan = 9;
+      detailTd.colSpan = 10;
       var allies = m.allies || [];
       var enemies = m.enemies || [];
       detailTd.innerHTML =
@@ -864,7 +1109,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             renderTeamPlayers(allies) +
           '</div>' +
           '<div class="team-block">' +
-            '<div class="team-label enemy">' + (m.win ? 'Defeat' : 'Victory') + ' — Enemy Team</div>' +
+            '<div class="team-label enemy">' + (!m.win ? 'Victory' : 'Defeat') + ' — Enemy Team</div>' +
             renderTeamPlayers(enemies) +
           '</div>' +
         '</div>';
@@ -928,6 +1173,16 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   document.getElementById('btn-search').addEventListener('click', doSearch);
   document.getElementById('search-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') doSearch();
+  });
+
+  // Queue filter tabs
+  document.getElementById('queue-tabs').addEventListener('click', function(e) {
+    var btn = e.target.closest('.queue-tab');
+    if (!btn) return;
+    var filter = btn.getAttribute('data-filter');
+    currentFilter = filter;
+    setActiveTab(filter);
+    renderMatches(filterMatches(filter));
   });
 
   loadRecentSearches();

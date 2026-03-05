@@ -50,6 +50,9 @@ local function handler()
     -- Get mastery top 20
     local mastery, _ = funcs.new():call("app.lc:riot_api_get_mastery", {puuid = puuid, count = 20})
 
+    -- Get challenges
+    local challenges, _ = funcs.new():call("app.lc:riot_api_get_challenges", {puuid = puuid})
+
     -- Get DDragon champions data for name/icon resolution
     local dd_data, _ = funcs.new():call("app.lc:ddragon_get_champions", {})
     local dd_version = (dd_data and dd_data.version) or "14.5.1"
@@ -118,6 +121,15 @@ local function handler()
                         for _, p in ipairs(match_data.info.participants) do
                             local p_champ = champions[tostring(p.championId)]
                             local p_cs = (p.totalMinionsKilled or 0) + (p.neutralMinionsKilled or 0)
+                            -- Collect items
+                            local p_items = {}
+                            for idx = 0, 6 do
+                                local item_id = p["item" .. idx]
+                                if item_id and item_id > 0 then
+                                    table.insert(p_items, item_id)
+                                end
+                            end
+
                             local player_data = {
                                 summoner_name = p.riotIdGameName or p.summonerName or "Unknown",
                                 tag_line = p.riotIdTagline or "",
@@ -132,6 +144,9 @@ local function handler()
                                 vision_score = p.visionScore or 0,
                                 position = p.teamPosition or "",
                                 win = p.win,
+                                items = p_items,
+                                summoner1 = p.summoner1Id or 0,
+                                summoner2 = p.summoner2Id or 0,
                             }
                             if p.puuid == puuid then
                                 player_data.is_me = true
@@ -141,6 +156,15 @@ local function handler()
                             else
                                 table.insert(enemies, player_data)
                             end
+                        end
+                    end
+
+                    -- Collect player items
+                    local my_items = {}
+                    for idx = 0, 6 do
+                        local item_id = participant["item" .. idx]
+                        if item_id and item_id > 0 then
+                            table.insert(my_items, item_id)
                         end
                     end
 
@@ -161,6 +185,9 @@ local function handler()
                         game_mode = info.gameMode,
                         position = participant.teamPosition or "",
                         queue_id = info.queueId,
+                        items = my_items,
+                        summoner1 = participant.summoner1Id or 0,
+                        summoner2 = participant.summoner2Id or 0,
                         allies = allies,
                         enemies = enemies,
                     })
@@ -188,6 +215,18 @@ local function handler()
         })
     end
 
+    -- Extract challenge summary
+    local challenge_summary = nil
+    if challenges then
+        local tp = challenges.totalPoints or {}
+        challenge_summary = {
+            level = tp.level,
+            current = tp.current,
+            max = tp.max,
+            percentile = tp.percentile,
+        }
+    end
+
     res:set_status(200)
     res:write_json({
         account = {
@@ -203,6 +242,7 @@ local function handler()
         ranked = ranked,
         mastery = enriched_mastery,
         matches = matches,
+        challenges = challenge_summary,
         dd_version = dd_version,
     })
 end

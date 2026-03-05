@@ -32,6 +32,9 @@ local function init_schema()
             league_points INTEGER DEFAULT 0,
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
+            hot_streak INTEGER DEFAULT 0,
+            veteran INTEGER DEFAULT 0,
+            fresh_blood INTEGER DEFAULT 0,
             updated_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(puuid, queue_type)
         )
@@ -88,6 +91,107 @@ local function init_schema()
         ON player_mastery(puuid, champion_points DESC)
     ]])
 
+    -- Match participants (all 10 players per match)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS match_participants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match_id TEXT NOT NULL,
+            puuid TEXT,
+            team_id INTEGER,
+            champion_id INTEGER,
+            champion_name TEXT,
+            summoner_name TEXT,
+            tag_line TEXT,
+            kills INTEGER DEFAULT 0,
+            deaths INTEGER DEFAULT 0,
+            assists INTEGER DEFAULT 0,
+            cs INTEGER DEFAULT 0,
+            total_damage INTEGER DEFAULT 0,
+            gold_earned INTEGER DEFAULT 0,
+            vision_score INTEGER DEFAULT 0,
+            position TEXT,
+            win INTEGER DEFAULT 0,
+            items TEXT,
+            summoner1 INTEGER DEFAULT 0,
+            summoner2 INTEGER DEFAULT 0,
+            UNIQUE(match_id, puuid)
+        )
+    ]])
+
+    db:execute([[
+        CREATE INDEX IF NOT EXISTS idx_match_participants_match
+        ON match_participants(match_id)
+    ]])
+
+    -- Player challenges cache
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS player_challenges (
+            puuid TEXT PRIMARY KEY,
+            level TEXT,
+            current_points INTEGER DEFAULT 0,
+            max_points INTEGER DEFAULT 0,
+            percentile REAL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    -- Add new columns to matches (ignore errors if already exist)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN summoner1 INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN summoner2 INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN cs_per_min REAL DEFAULT 0") end)
+    -- Multi-kills
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN double_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN triple_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN quadra_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN penta_kills INTEGER DEFAULT 0") end)
+    -- Damage breakdown
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN physical_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN magic_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN true_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN damage_taken INTEGER DEFAULT 0") end)
+    -- Wards
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN wards_placed INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN wards_killed INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN control_wards INTEGER DEFAULT 0") end)
+    -- Challenges per match
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN kill_participation REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN damage_share REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN gold_per_min REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN damage_per_min REAL DEFAULT 0") end)
+    -- Runes
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN perks_primary_style INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN perks_sub_style INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN perks_keystone INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN champ_level INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN gold_spent INTEGER DEFAULT 0") end)
+    -- Surrender/first blood
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN game_ended_surrender INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN first_blood INTEGER DEFAULT 0") end)
+
+    -- Match participants extra columns
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN double_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN triple_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN quadra_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN penta_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN physical_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN magic_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN true_damage INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN damage_taken INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN wards_placed INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN wards_killed INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN control_wards INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN kill_participation REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN damage_share REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN perks_keystone INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN perks_primary_style INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN perks_sub_style INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN champ_level INTEGER DEFAULT 0") end)
+
+    -- Ranked extra columns
+    pcall(function() db:execute("ALTER TABLE player_ranked ADD COLUMN hot_streak INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE player_ranked ADD COLUMN veteran INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE player_ranked ADD COLUMN fresh_blood INTEGER DEFAULT 0") end)
+
     db:execute([[
         CREATE TABLE IF NOT EXISTS recent_searches (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +204,42 @@ local function init_schema()
             searched_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(puuid)
         )
+    ]])
+
+    -- LP history for ranked progression tracking
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS ranked_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            puuid TEXT NOT NULL,
+            queue_type TEXT NOT NULL,
+            tier TEXT,
+            rank TEXT,
+            league_points INTEGER DEFAULT 0,
+            wins INTEGER DEFAULT 0,
+            losses INTEGER DEFAULT 0,
+            recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    db:execute([[
+        CREATE INDEX IF NOT EXISTS idx_ranked_history_puuid
+        ON ranked_history(puuid, queue_type, recorded_at DESC)
+    ]])
+
+    -- DDragon cache table
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS ddragon_cache (
+            cache_key TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            version TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    -- Index for duo partner analysis
+    db:execute([[
+        CREATE INDEX IF NOT EXISTS idx_match_participants_puuid
+        ON match_participants(puuid)
     ]])
 
     db:release()
@@ -195,14 +335,17 @@ local function save_ranked(input)
     if err then return {error = tostring(err)} end
 
     local _, exec_err = db:execute([[
-        INSERT INTO player_ranked (puuid, queue_type, tier, rank, league_points, wins, losses, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO player_ranked (puuid, queue_type, tier, rank, league_points, wins, losses, hot_streak, veteran, fresh_blood, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(puuid, queue_type) DO UPDATE SET
             tier = excluded.tier,
             rank = excluded.rank,
             league_points = excluded.league_points,
             wins = excluded.wins,
             losses = excluded.losses,
+            hot_streak = excluded.hot_streak,
+            veteran = excluded.veteran,
+            fresh_blood = excluded.fresh_blood,
             updated_at = datetime('now')
     ]], {
         input.puuid,
@@ -212,6 +355,9 @@ local function save_ranked(input)
         input.league_points or 0,
         input.wins or 0,
         input.losses or 0,
+        input.hot_streak and 1 or 0,
+        input.veteran and 1 or 0,
+        input.fresh_blood and 1 or 0,
     })
     db:release()
 
@@ -309,8 +455,16 @@ local function save_match(input)
         INSERT OR IGNORE INTO matches
             (match_id, puuid, champion_id, champion_name, kills, deaths, assists,
              cs, vision_score, total_damage, gold_earned, win, game_duration,
-             game_mode, queue_id, position, items, game_creation)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             game_mode, queue_id, position, items, game_creation,
+             summoner1, summoner2, cs_per_min,
+             double_kills, triple_kills, quadra_kills, penta_kills,
+             physical_damage, magic_damage, true_damage, damage_taken,
+             wards_placed, wards_killed, control_wards,
+             kill_participation, damage_share, gold_per_min, damage_per_min,
+             perks_primary_style, perks_sub_style, perks_keystone,
+             champ_level, gold_spent, game_ended_surrender, first_blood)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
         input.match_id,
         input.puuid,
@@ -330,6 +484,31 @@ local function save_match(input)
         input.position,
         items_json,
         input.game_creation,
+        input.summoner1 or 0,
+        input.summoner2 or 0,
+        input.cs_per_min or 0,
+        input.double_kills or 0,
+        input.triple_kills or 0,
+        input.quadra_kills or 0,
+        input.penta_kills or 0,
+        input.physical_damage or 0,
+        input.magic_damage or 0,
+        input.true_damage or 0,
+        input.damage_taken or 0,
+        input.wards_placed or 0,
+        input.wards_killed or 0,
+        input.control_wards or 0,
+        input.kill_participation or 0,
+        input.damage_share or 0,
+        input.gold_per_min or 0,
+        input.damage_per_min or 0,
+        input.perks_primary_style or 0,
+        input.perks_sub_style or 0,
+        input.perks_keystone or 0,
+        input.champ_level or 0,
+        input.gold_spent or 0,
+        input.game_ended_surrender and 1 or 0,
+        input.first_blood and 1 or 0,
     })
     db:release()
 
@@ -412,6 +591,390 @@ local function get_recent_searches(input)
     return rows or {}
 end
 
+--- Save match participants (all 10 players).
+local function save_match_participants(input)
+    if not input or not input.match_id or not input.participants then
+        return {error = "match_id and participants are required"}
+    end
+
+    local json = require("json")
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    for _, p in ipairs(input.participants) do
+        local items_json = ""
+        if p.items then
+            items_json = json.encode(p.items)
+        end
+
+        db:execute([[
+            INSERT OR IGNORE INTO match_participants
+                (match_id, puuid, team_id, champion_id, champion_name,
+                 summoner_name, tag_line, kills, deaths, assists, cs,
+                 total_damage, gold_earned, vision_score, position, win,
+                 items, summoner1, summoner2,
+                 double_kills, triple_kills, quadra_kills, penta_kills,
+                 physical_damage, magic_damage, true_damage, damage_taken,
+                 wards_placed, wards_killed, control_wards,
+                 kill_participation, damage_share,
+                 perks_keystone, perks_primary_style, perks_sub_style, champ_level)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ]], {
+            input.match_id,
+            p.puuid or "",
+            p.team_id or 0,
+            p.champion_id or 0,
+            p.champion_name,
+            p.summoner_name,
+            p.tag_line or "",
+            p.kills or 0,
+            p.deaths or 0,
+            p.assists or 0,
+            p.cs or 0,
+            p.total_damage or 0,
+            p.gold_earned or 0,
+            p.vision_score or 0,
+            p.position or "",
+            p.win and 1 or 0,
+            items_json,
+            p.summoner1 or 0,
+            p.summoner2 or 0,
+            p.double_kills or 0,
+            p.triple_kills or 0,
+            p.quadra_kills or 0,
+            p.penta_kills or 0,
+            p.physical_damage or 0,
+            p.magic_damage or 0,
+            p.true_damage or 0,
+            p.damage_taken or 0,
+            p.wards_placed or 0,
+            p.wards_killed or 0,
+            p.control_wards or 0,
+            p.kill_participation or 0,
+            p.damage_share or 0,
+            p.perks_keystone or 0,
+            p.perks_primary_style or 0,
+            p.perks_sub_style or 0,
+            p.champ_level or 0,
+        })
+    end
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get match participants for a list of match IDs.
+local function get_match_participants(input)
+    if not input or not input.match_ids or #input.match_ids == 0 then
+        return {}
+    end
+
+    local json = require("json")
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    -- Build placeholders
+    local placeholders = {}
+    for i = 1, #input.match_ids do
+        placeholders[i] = "?"
+    end
+
+    local rows, qerr = db:query(
+        "SELECT * FROM match_participants WHERE match_id IN (" ..
+        table.concat(placeholders, ",") .. ") ORDER BY match_id, team_id",
+        input.match_ids
+    )
+    db:release()
+
+    if qerr then return {error = tostring(qerr)} end
+
+    -- Parse items JSON
+    if rows then
+        for _, r in ipairs(rows) do
+            if r.items and r.items ~= "" then
+                local ok, parsed = pcall(json.decode, r.items)
+                if ok then r.items = parsed else r.items = {} end
+            else
+                r.items = {}
+            end
+        end
+    end
+
+    return rows or {}
+end
+
+--- Check which match IDs already exist in the DB.
+local function check_existing_matches(input)
+    if not input or not input.match_ids or #input.match_ids == 0 then
+        return {}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local placeholders = {}
+    for i = 1, #input.match_ids do
+        placeholders[i] = "?"
+    end
+
+    local rows, qerr = db:query(
+        "SELECT match_id FROM matches WHERE match_id IN (" ..
+        table.concat(placeholders, ",") .. ")",
+        input.match_ids
+    )
+    db:release()
+
+    if qerr then return {error = tostring(qerr)} end
+
+    local existing = {}
+    if rows then
+        for _, r in ipairs(rows) do
+            existing[r.match_id] = true
+        end
+    end
+    return existing
+end
+
+--- Save player challenges.
+local function save_challenges(input)
+    if not input or not input.puuid then
+        return {error = "puuid is required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local _, exec_err = db:execute([[
+        INSERT INTO player_challenges (puuid, level, current_points, max_points, percentile, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(puuid) DO UPDATE SET
+            level = excluded.level,
+            current_points = excluded.current_points,
+            max_points = excluded.max_points,
+            percentile = excluded.percentile,
+            updated_at = datetime('now')
+    ]], {
+        input.puuid,
+        input.level,
+        input.current_points or 0,
+        input.max_points or 0,
+        input.percentile,
+    })
+    db:release()
+
+    if exec_err then return {error = tostring(exec_err)} end
+    return {ok = true}
+end
+
+--- Get cached challenges.
+local function get_challenges(input)
+    if not input or not input.puuid then
+        return nil
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return nil end
+
+    local rows, qerr = db:query(
+        "SELECT * FROM player_challenges WHERE puuid = ? LIMIT 1",
+        {input.puuid}
+    )
+    db:release()
+
+    if qerr or not rows or #rows == 0 then return nil end
+    return rows[1]
+end
+
+--- Record LP snapshot for ranked history.
+local function save_ranked_history(input)
+    if not input or not input.puuid or not input.queue_type then
+        return {error = "puuid and queue_type are required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    -- Only insert if different from last record (avoid duplicates)
+    local last, _ = db:query([[
+        SELECT tier, rank, league_points FROM ranked_history
+        WHERE puuid = ? AND queue_type = ?
+        ORDER BY recorded_at DESC LIMIT 1
+    ]], {input.puuid, input.queue_type})
+
+    local dominated = false
+    if last and #last > 0 then
+        local prev = last[1]
+        if prev.tier == input.tier and prev.rank == input.rank and prev.league_points == input.league_points then
+            dominated = true
+        end
+    end
+
+    if not dominated then
+        db:execute([[
+            INSERT INTO ranked_history (puuid, queue_type, tier, rank, league_points, wins, losses, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ]], {
+            input.puuid,
+            input.queue_type,
+            input.tier,
+            input.rank,
+            input.league_points or 0,
+            input.wins or 0,
+            input.losses or 0,
+        })
+    end
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get ranked history for LP progression chart.
+local function get_ranked_history(input)
+    if not input or not input.puuid then
+        return {}
+    end
+
+    local queue_type = input.queue_type or "RANKED_SOLO_5x5"
+    local limit = input.limit or 50
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        SELECT * FROM ranked_history
+        WHERE puuid = ? AND queue_type = ?
+        ORDER BY recorded_at DESC
+        LIMIT ?
+    ]], {input.puuid, queue_type, limit})
+    db:release()
+
+    if qerr then return {error = tostring(qerr)} end
+    return rows or {}
+end
+
+--- Get duo partners from match participants.
+local function get_duo_partners(input)
+    if not input or not input.puuid then
+        return {}
+    end
+
+    local limit = input.limit or 10
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            mp2.summoner_name,
+            mp2.tag_line,
+            mp2.puuid as partner_puuid,
+            COUNT(*) as games_together,
+            SUM(CASE WHEN mp1.win = 1 THEN 1 ELSE 0 END) as wins_together,
+            SUM(CASE WHEN mp1.win = 0 THEN 1 ELSE 0 END) as losses_together
+        FROM match_participants mp1
+        JOIN match_participants mp2
+            ON mp1.match_id = mp2.match_id
+            AND mp1.team_id = mp2.team_id
+            AND mp1.puuid != mp2.puuid
+        WHERE mp1.puuid = ?
+            AND mp2.puuid != ''
+            AND mp2.summoner_name != ''
+        GROUP BY mp2.puuid
+        HAVING games_together >= 2
+        ORDER BY games_together DESC
+        LIMIT ?
+    ]], {input.puuid, limit})
+    db:release()
+
+    if qerr then return {error = tostring(qerr)} end
+    return rows or {}
+end
+
+--- Get win rate over time (daily aggregates).
+local function get_winrate_history(input)
+    if not input or not input.puuid then
+        return {}
+    end
+
+    local days = input.days or 30
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            date(game_creation / 1000, 'unixepoch') as day,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            SUM(CASE WHEN win = 0 THEN 1 ELSE 0 END) as losses,
+            ROUND(AVG(kills), 1) as avg_kills,
+            ROUND(AVG(deaths), 1) as avg_deaths,
+            ROUND(AVG(assists), 1) as avg_assists
+        FROM matches
+        WHERE puuid = ?
+            AND game_creation > (strftime('%s', 'now', '-' || ? || ' days') * 1000)
+        GROUP BY day
+        ORDER BY day ASC
+    ]], {input.puuid, days})
+    db:release()
+
+    if qerr then return {error = tostring(qerr)} end
+    return rows or {}
+end
+
+--- Save DDragon cache entry.
+local function save_ddragon_cache(input)
+    if not input or not input.cache_key or not input.data then
+        return {error = "cache_key and data are required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local _, exec_err = db:execute([[
+        INSERT INTO ddragon_cache (cache_key, data, version, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(cache_key) DO UPDATE SET
+            data = excluded.data,
+            version = excluded.version,
+            updated_at = datetime('now')
+    ]], {
+        input.cache_key,
+        input.data,
+        input.version or "",
+    })
+    db:release()
+
+    if exec_err then return {error = tostring(exec_err)} end
+    return {ok = true}
+end
+
+--- Get DDragon cache entry.
+local function get_ddragon_cache(input)
+    if not input or not input.cache_key then
+        return nil
+    end
+
+    local ttl_hours = input.ttl_hours or 24
+
+    local db, err = sql.get(DB_ID)
+    if err then return nil end
+
+    local rows, qerr = db:query([[
+        SELECT * FROM ddragon_cache
+        WHERE cache_key = ?
+            AND updated_at > datetime('now', '-' || ? || ' hours')
+        LIMIT 1
+    ]], {input.cache_key, ttl_hours})
+    db:release()
+
+    if qerr or not rows or #rows == 0 then return nil end
+    return rows[1]
+end
+
 return {
     init_schema = init_schema,
     get_player = get_player,
@@ -425,4 +988,15 @@ return {
     list_tracked_players = list_tracked_players,
     save_recent_search = save_recent_search,
     get_recent_searches = get_recent_searches,
+    save_match_participants = save_match_participants,
+    get_match_participants = get_match_participants,
+    check_existing_matches = check_existing_matches,
+    save_challenges = save_challenges,
+    get_challenges = get_challenges,
+    save_ranked_history = save_ranked_history,
+    get_ranked_history = get_ranked_history,
+    get_duo_partners = get_duo_partners,
+    get_winrate_history = get_winrate_history,
+    save_ddragon_cache = save_ddragon_cache,
+    get_ddragon_cache = get_ddragon_cache,
 }

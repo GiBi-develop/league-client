@@ -85,7 +85,42 @@ entries:
     method: get_challenges
     modules: [http_client, json, env]
 
+  - name: riot_api_get_active_game
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_active_game
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_champion_rotations
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_champion_rotations
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_status
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_status
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_match_timeline
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_match_timeline
+    modules: [http_client, json, env]
+
   # ── Data Dragon Functions ────────────────────────────
+  - name: ddragon_get_items
+    kind: function.lua
+    source: file://api/data_dragon.lua
+    method: get_items
+    modules: [http_client, json]
+
+  - name: ddragon_get_runes
+    kind: function.lua
+    source: file://api/data_dragon.lua
+    method: get_runes
+    modules: [http_client, json]
   - name: ddragon_get_version
     kind: function.lua
     source: file://api/data_dragon.lua
@@ -133,6 +168,7 @@ entries:
       - funcs
       - events
       - env
+      - contract
 
   # ── Data Manager ─────────────────────────────────────
   - name: data_manager_process
@@ -237,6 +273,20 @@ entries:
     path: /api/player/{puuid}
     func: app.lc:api_player
 
+  - name: api_rotations
+    kind: function.lua
+    source: file://dashboard/handlers/api_rotations.lua
+    method: handler
+    modules: [http, json, funcs]
+
+  - name: api_rotations_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/rotations
+    func: app.lc:api_rotations
+
   - name: api_recent_searches
     kind: function.lua
     source: file://dashboard/handlers/api_recent_searches.lua
@@ -250,6 +300,48 @@ entries:
     method: GET
     path: /api/recent-searches
     func: app.lc:api_recent_searches
+
+  - name: api_status
+    kind: function.lua
+    source: file://dashboard/handlers/api_status.lua
+    method: handler
+    modules: [http, json, funcs]
+
+  - name: api_status_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/status
+    func: app.lc:api_status
+
+  - name: api_player_stats
+    kind: function.lua
+    source: file://dashboard/handlers/api_player_stats.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_player_stats_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/player/{puuid}/stats
+    func: app.lc:api_player_stats
+
+  - name: api_match_timeline
+    kind: function.lua
+    source: file://dashboard/handlers/api_match_timeline.lua
+    method: handler
+    modules: [http, json, funcs]
+
+  - name: api_match_timeline_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/match/{matchId}/timeline
+    func: app.lc:api_match_timeline
 
   # ── Templates ────────────────────────────────────────
   - name: templates

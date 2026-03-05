@@ -38,6 +38,28 @@ entries:
         description: Save a recent player search
       - name: get_recent_searches
         description: Get recent searches with ranked data
+      - name: save_match_participants
+        description: Save all participants for a match
+      - name: get_match_participants
+        description: Get participants for given match IDs
+      - name: check_existing_matches
+        description: Check which match IDs already exist in DB
+      - name: save_challenges
+        description: Save player challenges summary
+      - name: get_challenges
+        description: Get cached player challenges
+      - name: save_ranked_history
+        description: Record LP snapshot for ranked history
+      - name: get_ranked_history
+        description: Get ranked history for LP progression
+      - name: get_duo_partners
+        description: Get frequent duo partners from match data
+      - name: get_winrate_history
+        description: Get daily win rate aggregates
+      - name: save_ddragon_cache
+        description: Save DDragon cache entry
+      - name: get_ddragon_cache
+        description: Get DDragon cache entry with TTL
 
   - name: players_init_schema
     kind: function.lua
@@ -111,6 +133,72 @@ entries:
     method: get_recent_searches
     modules: [sql]
 
+  - name: players_save_match_participants
+    kind: function.lua
+    source: file://players.lua
+    method: save_match_participants
+    modules: [sql, json]
+
+  - name: players_get_match_participants
+    kind: function.lua
+    source: file://players.lua
+    method: get_match_participants
+    modules: [sql, json]
+
+  - name: players_check_existing_matches
+    kind: function.lua
+    source: file://players.lua
+    method: check_existing_matches
+    modules: [sql]
+
+  - name: players_save_challenges
+    kind: function.lua
+    source: file://players.lua
+    method: save_challenges
+    modules: [sql]
+
+  - name: players_get_challenges
+    kind: function.lua
+    source: file://players.lua
+    method: get_challenges
+    modules: [sql]
+
+  - name: players_save_ranked_history
+    kind: function.lua
+    source: file://players.lua
+    method: save_ranked_history
+    modules: [sql]
+
+  - name: players_get_ranked_history
+    kind: function.lua
+    source: file://players.lua
+    method: get_ranked_history
+    modules: [sql]
+
+  - name: players_get_duo_partners
+    kind: function.lua
+    source: file://players.lua
+    method: get_duo_partners
+    modules: [sql]
+
+  - name: players_get_winrate_history
+    kind: function.lua
+    source: file://players.lua
+    method: get_winrate_history
+    modules: [sql]
+
+  - name: players_save_ddragon_cache
+    kind: function.lua
+    source: file://players.lua
+    method: save_ddragon_cache
+    modules: [sql]
+
+  - name: players_get_ddragon_cache
+    kind: function.lua
+    source: file://players.lua
+    method: get_ddragon_cache
+    modules: [sql]
+
   - name: player_storage
     kind: contract.binding
     contracts:
@@ -129,3 +217,14 @@ entries:
           list_tracked_players: app.lc.lib:players_list_tracked
           save_recent_search: app.lc.lib:players_save_recent_search
           get_recent_searches: app.lc.lib:players_get_recent_searches
+          save_match_participants: app.lc.lib:players_save_match_participants
+          get_match_participants: app.lc.lib:players_get_match_participants
+          check_existing_matches: app.lc.lib:players_check_existing_matches
+          save_challenges: app.lc.lib:players_save_challenges
+          get_challenges: app.lc.lib:players_get_challenges
+          save_ranked_history: app.lc.lib:players_save_ranked_history
+          get_ranked_history: app.lc.lib:players_get_ranked_history
+          get_duo_partners: app.lc.lib:players_get_duo_partners
+          get_winrate_history: app.lc.lib:players_get_winrate_history
+          save_ddragon_cache: app.lc.lib:players_save_ddragon_cache
+          get_ddragon_cache: app.lc.lib:players_get_ddragon_cache

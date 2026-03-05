@@ -168,6 +168,58 @@ local function get_challenges(meta)
     return api_request(url)
 end
 
+--- Get active game (spectator) by PUUID.
+--- Input: {puuid = "...", platform? = "EUW1"}
+--- Returns: active game data or nil/"not_found" if not in game
+local function get_active_game(meta)
+    if not meta or not meta.puuid then
+        return nil, "puuid is required"
+    end
+
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/spectator/v5/active-games/by-summoner/" .. meta.puuid
+
+    return api_request(url)
+end
+
+--- Get champion rotation.
+--- Input: {platform? = "EUW1"}
+--- Returns: {freeChampionIds, freeChampionIdsForNewPlayers, maxNewPlayerLevel}
+local function get_champion_rotations(meta)
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/platform/v3/champion-rotations"
+
+    return api_request(url)
+end
+
+--- Get server status.
+--- Input: {platform? = "EUW1"}
+--- Returns: {id, name, locales, maintenances, incidents}
+local function get_status(meta)
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/status/v4/platform-data"
+
+    return api_request(url)
+end
+
+--- Get match timeline by match ID.
+--- Input: {match_id = "...", region? = "EUROPE"}
+--- Returns: timeline data with frames and events
+local function get_match_timeline(meta)
+    if not meta or not meta.match_id then
+        return nil, "match_id is required"
+    end
+
+    local region = get_region(meta)
+    local url = "https://" .. string.lower(region) .. ".api.riotgames.com"
+        .. "/lol/match/v5/matches/" .. meta.match_id .. "/timeline"
+
+    return api_request(url)
+end
+
 return {
     get_account = get_account,
     get_summoner = get_summoner,
@@ -176,4 +228,8 @@ return {
     get_matches = get_matches,
     get_match = get_match,
     get_challenges = get_challenges,
+    get_active_game = get_active_game,
+    get_champion_rotations = get_champion_rotations,
+    get_status = get_status,
+    get_match_timeline = get_match_timeline,
 }

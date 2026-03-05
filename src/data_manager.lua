@@ -26,6 +26,81 @@ local function extract_participant(match_data, puuid)
     return nil
 end
 
+--- Extract rune/perk info from participant data.
+local function extract_perks(participant)
+    local keystone = 0
+    local primary_style = 0
+    local sub_style = 0
+
+    if participant.perks and participant.perks.styles then
+        for _, style in ipairs(participant.perks.styles) do
+            if style.description == "primaryStyle" then
+                primary_style = style.style or 0
+                if style.selections and #style.selections > 0 then
+                    keystone = style.selections[1].perk or 0
+                end
+            elseif style.description == "subStyle" then
+                sub_style = style.style or 0
+            end
+        end
+    end
+
+    return keystone, primary_style, sub_style
+end
+
+--- Build full participant data for DB storage from raw API participant.
+local function build_participant_data(p)
+    local p_cs = (p.totalMinionsKilled or 0) + (p.neutralMinionsKilled or 0)
+    local p_items = {}
+    for idx = 0, 6 do
+        if p["item" .. idx] and p["item" .. idx] > 0 then
+            table.insert(p_items, p["item" .. idx])
+        end
+    end
+
+    local keystone, primary_style, sub_style = extract_perks(p)
+
+    local challenges = p.challenges or {}
+
+    return {
+        puuid = p.puuid,
+        team_id = p.teamId,
+        champion_id = p.championId,
+        champion_name = p.championName,
+        summoner_name = p.riotIdGameName or p.summonerName or "Unknown",
+        tag_line = p.riotIdTagline or "",
+        kills = p.kills or 0,
+        deaths = p.deaths or 0,
+        assists = p.assists or 0,
+        cs = p_cs,
+        total_damage = p.totalDamageDealtToChampions or 0,
+        gold_earned = p.goldEarned or 0,
+        vision_score = p.visionScore or 0,
+        position = p.teamPosition or "",
+        win = p.win,
+        items = p_items,
+        summoner1 = p.summoner1Id or 0,
+        summoner2 = p.summoner2Id or 0,
+        double_kills = p.doubleKills or 0,
+        triple_kills = p.tripleKills or 0,
+        quadra_kills = p.quadraKills or 0,
+        penta_kills = p.pentaKills or 0,
+        physical_damage = p.physicalDamageDealtToChampions or 0,
+        magic_damage = p.magicDamageDealtToChampions or 0,
+        true_damage = p.trueDamageDealtToChampions or 0,
+        damage_taken = p.totalDamageTaken or 0,
+        wards_placed = p.wardsPlaced or 0,
+        wards_killed = p.wardsKilled or 0,
+        control_wards = p.detectorWardsPlaced or 0,
+        kill_participation = challenges.killParticipation or 0,
+        damage_share = challenges.teamDamagePercentage or 0,
+        perks_keystone = keystone,
+        perks_primary_style = primary_style,
+        perks_sub_style = sub_style,
+        champ_level = p.champLevel or 0,
+    }
+end
+
 --- Handle a player.data_fetched event.
 local function handle_data_fetched(storage, data)
     local puuid = data.puuid
@@ -95,10 +170,24 @@ local function handle_data_fetched(storage, data)
                 league_points = entry.leaguePoints,
                 wins = entry.wins,
                 losses = entry.losses,
+                hot_streak = entry.hotStreak,
+                veteran = entry.veteran,
+                fresh_blood = entry.freshBlood,
             })
             if err then
                 logger:error("Failed to save ranked", {puuid = puuid, error = tostring(err)})
             end
+
+            -- Record LP history
+            storage:save_ranked_history({
+                puuid = puuid,
+                queue_type = entry.queueType,
+                tier = entry.tier,
+                rank = entry.rank,
+                league_points = entry.leaguePoints,
+                wins = entry.wins,
+                losses = entry.losses,
+            })
 
             -- Detect rank change
             if old_tier and (old_tier ~= entry.tier or old_rank ~= entry.rank or old_lp ~= entry.leaguePoints) then
@@ -167,6 +256,9 @@ local function handle_data_fetched(storage, data)
                     cs_per_min = math.floor(cs / (game_duration / 60) * 10) / 10
                 end
 
+                local challenges = participant.challenges or {}
+                local keystone, primary_style, sub_style = extract_perks(participant)
+
                 local result, err = storage:save_match({
                     match_id = match_id,
                     puuid = puuid,
@@ -186,7 +278,44 @@ local function handle_data_fetched(storage, data)
                     position = participant.teamPosition,
                     items = items,
                     game_creation = info.gameCreation,
+                    summoner1 = participant.summoner1Id,
+                    summoner2 = participant.summoner2Id,
+                    cs_per_min = cs_per_min,
+                    double_kills = participant.doubleKills,
+                    triple_kills = participant.tripleKills,
+                    quadra_kills = participant.quadraKills,
+                    penta_kills = participant.pentaKills,
+                    physical_damage = participant.physicalDamageDealtToChampions,
+                    magic_damage = participant.magicDamageDealtToChampions,
+                    true_damage = participant.trueDamageDealtToChampions,
+                    damage_taken = participant.totalDamageTaken,
+                    wards_placed = participant.wardsPlaced,
+                    wards_killed = participant.wardsKilled,
+                    control_wards = participant.detectorWardsPlaced,
+                    kill_participation = challenges.killParticipation,
+                    damage_share = challenges.teamDamagePercentage,
+                    gold_per_min = challenges.goldPerMinute,
+                    damage_per_min = challenges.damagePerMinute,
+                    perks_primary_style = primary_style,
+                    perks_sub_style = sub_style,
+                    perks_keystone = keystone,
+                    champ_level = participant.champLevel,
+                    gold_spent = participant.goldSpent,
+                    game_ended_surrender = participant.gameEndedInSurrender,
+                    first_blood = participant.firstBloodKill,
                 })
+
+                -- Save all 10 participants for this match
+                if result and result.inserted and info.participants then
+                    local all_participants = {}
+                    for _, p in ipairs(info.participants) do
+                        table.insert(all_participants, build_participant_data(p))
+                    end
+                    storage:save_match_participants({
+                        match_id = match_id,
+                        participants = all_participants,
+                    })
+                end
 
                 -- Emit new match event ONLY if it was actually inserted (not a duplicate)
                 if result and result.inserted then
@@ -221,6 +350,7 @@ local function handle_data_fetched(storage, data)
                         position = participant.teamPosition,
                         queue_id = info.queueId,
                         lp_diff = lp_info and lp_info.lp_diff or nil,
+                        penta_kills = participant.pentaKills,
                         discord_notify = data.discord_notify or false,
                     })
                 end

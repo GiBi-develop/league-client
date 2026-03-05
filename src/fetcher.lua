@@ -3,16 +3,17 @@ local time = require("time")
 local funcs = require("funcs")
 local events = require("events")
 local env = require("env")
+local contract = require("contract")
 
 --- Fetch all player data from Riot API and emit events.
-local function do_fetch(player_id, meta)
+local function do_fetch(player_id, meta, storage)
     local game_name = meta.game_name
     local tag_line = meta.tag_line
     local player_name = game_name .. "#" .. tag_line
 
     logger:info("Fetching player data", {player = player_id, name = player_name})
 
-    -- Step 1: Get account by Riot ID → PUUID
+    -- Step 1: Get account by Riot ID
     local account, err = funcs.new():call("app.lc:riot_api_get_account", {
         game_name = game_name,
         tag_line = tag_line,
@@ -74,18 +75,37 @@ local function do_fetch(player_id, meta)
         logger:warn("Failed to get matches", {player = player_name, error = tostring(match_err)})
     end
 
-    -- Step 6: Fetch match details (up to 5)
+    -- Step 6: Fetch match details — only NEW ones (skip cached)
     local matches = {}
     if match_ids and #match_ids > 0 then
-        for i = 1, math.min(#match_ids, 5) do
+        local new_ids = match_ids
+        if storage then
+            local existing = storage:check_existing_matches({match_ids = match_ids}) or {}
+            new_ids = {}
+            for _, mid in ipairs(match_ids) do
+                if not existing[mid] then
+                    table.insert(new_ids, mid)
+                end
+            end
+            if #match_ids ~= #new_ids then
+                logger:info("Match caching", {
+                    player = player_name,
+                    total = #match_ids,
+                    cached = #match_ids - #new_ids,
+                    to_fetch = #new_ids,
+                })
+            end
+        end
+
+        for i = 1, #new_ids do
             local match_data, m_err = funcs.new():call("app.lc:riot_api_get_match", {
-                match_id = match_ids[i],
+                match_id = new_ids[i],
                 region = meta.region,
             })
 
             if m_err then
                 logger:warn("Failed to get match detail", {
-                    match_id = match_ids[i],
+                    match_id = new_ids[i],
                     error = tostring(m_err),
                 })
             else
@@ -93,7 +113,9 @@ local function do_fetch(player_id, meta)
             end
 
             -- Small delay between match requests to avoid rate limiting
-            time.sleep("200ms")
+            if i < #new_ids then
+                time.sleep("200ms")
+            end
         end
     end
 
@@ -127,6 +149,13 @@ end
 local function main(player_id, meta, interval)
     local player_name = meta.game_name .. "#" .. meta.tag_line
 
+    -- Open storage for match caching
+    local storage, serr = contract.open("app.lc.lib:player_storage")
+    if serr then
+        logger:warn("Fetcher: could not open storage, caching disabled", {error = tostring(serr)})
+        storage = nil
+    end
+
     logger:info("Fetcher started", {
         player = player_id,
         name = player_name,
@@ -137,7 +166,7 @@ local function main(player_id, meta, interval)
     local evts = process.events()
 
     -- Run first fetch immediately
-    do_fetch(player_id, meta)
+    do_fetch(player_id, meta, storage)
 
     -- Then loop on timer
     while true do
@@ -154,7 +183,7 @@ local function main(player_id, meta, interval)
                 return 0
             end
         else
-            do_fetch(player_id, meta)
+            do_fetch(player_id, meta, storage)
         end
     end
 end

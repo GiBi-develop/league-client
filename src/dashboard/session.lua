@@ -145,7 +145,10 @@ local function main()
                     kills = data.kills,
                     deaths = data.deaths,
                     assists = data.assists,
+                    cs = data.cs,
+                    total_damage = data.total_damage,
                     win = data.win,
+                    lp_diff = data.lp_diff,
                     timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
                 })
             elseif kind == "fetch.failed" then

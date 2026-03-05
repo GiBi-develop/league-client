@@ -313,6 +313,43 @@ tr:hover td { background: rgba(200, 155, 60, 0.035); }
 .col-vision { font-size: 12px; color: var(--text-muted); }
 .col-duration { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
 
+/* Match detail row (expandable) */
+.match-row { cursor: pointer; }
+.match-row:hover td { background: rgba(200, 155, 60, 0.05); }
+.match-detail-row td { padding: 0 !important; border-bottom: 1px solid var(--border); background: transparent !important; }
+.match-detail-row.hidden { display: none; }
+.match-detail {
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.15);
+}
+.team-block { }
+.team-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.team-label.ally { color: var(--blue); }
+.team-label.enemy { color: var(--red); }
+.team-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.team-player.is-me { font-weight: 600; color: var(--gold); }
+.team-player-icon { width: 22px; height: 22px; border-radius: 3px; }
+.team-player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-player-kda { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.team-player-dmg { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); min-width: 45px; text-align: right; }
+
 /* Loading */
 .loading { text-align: center; padding: 40px; color: var(--text-muted); }
 .loading.hidden { display: none; }
@@ -722,7 +759,6 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       var statsHtml =
         '<span class="mastery-stat"><strong>' + pts + '</strong> pts</span>' +
         (m.chestGranted ? '<span class="mastery-stat" title="Chest earned">&#128230;</span>' : '') +
-        (m.tokensEarned ? '<span class="mastery-stat"><strong>' + m.tokensEarned + '</strong> tokens</span>' : '') +
         (lastPlayed ? '<span class="mastery-stat">' + lastPlayed + '</span>' : '');
 
       card.innerHTML =
@@ -737,6 +773,35 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 
       mGrid.appendChild(card);
     }
+  }
+
+  function formatPos(pos) {
+    if (pos === 'UTILITY') return 'SUP';
+    if (pos === 'BOTTOM') return 'ADC';
+    if (pos === 'MIDDLE') return 'MID';
+    if (pos === 'TOP') return 'TOP';
+    if (pos === 'JUNGLE') return 'JGL';
+    return '';
+  }
+
+  function renderTeamPlayers(players) {
+    var html = '';
+    for (var i = 0; i < players.length; i++) {
+      var p = players[i];
+      var cls = p.is_me ? 'team-player is-me' : 'team-player';
+      var icon = p.champion_image
+        ? '<img class="team-player-icon" src="' + esc(p.champion_image) + '" />'
+        : '<div class="team-player-icon" style="background:var(--border);"></div>';
+      var posStr = formatPos(p.position);
+      html += '<div class="' + cls + '">' +
+        icon +
+        '<span class="team-player-name">' + esc(p.champion_name || '?') + ' <span class="muted">' + esc(p.summoner_name || '') + '</span></span>' +
+        (posStr ? '<span class="muted" style="font-size:10px;min-width:28px;">' + posStr + '</span>' : '') +
+        '<span class="team-player-kda">' + p.kills + '/' + p.deaths + '/' + p.assists + '</span>' +
+        '<span class="team-player-dmg">' + fmtNumber(p.total_damage) + '</span>' +
+      '</div>';
+    }
+    return html;
   }
 
   function renderMatches(matches) {
@@ -772,6 +837,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         : '<td class="col-champ">' + esc(m.champion_name || 'Unknown') + '</td>';
 
       var tr = document.createElement('tr');
+      tr.className = 'match-row';
       tr.innerHTML =
         '<td><span class="badge ' + (m.win ? 'badge-win' : 'badge-loss') + '">' + (m.win ? 'W' : 'L') + '</span></td>' +
         champCell +
@@ -783,6 +849,34 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         '<td class="col-pos">' + esc(pos) + '</td>' +
         '<td class="col-duration">' + esc(m.game_duration || '—') + '</td>';
       tbody.appendChild(tr);
+
+      // Detail row (hidden by default)
+      var detailTr = document.createElement('tr');
+      detailTr.className = 'match-detail-row hidden';
+      var detailTd = document.createElement('td');
+      detailTd.colSpan = 9;
+      var allies = m.allies || [];
+      var enemies = m.enemies || [];
+      detailTd.innerHTML =
+        '<div class="match-detail">' +
+          '<div class="team-block">' +
+            '<div class="team-label ally">' + (m.win ? 'Victory' : 'Defeat') + ' — Allied Team</div>' +
+            renderTeamPlayers(allies) +
+          '</div>' +
+          '<div class="team-block">' +
+            '<div class="team-label enemy">' + (m.win ? 'Defeat' : 'Victory') + ' — Enemy Team</div>' +
+            renderTeamPlayers(enemies) +
+          '</div>' +
+        '</div>';
+      detailTr.appendChild(detailTd);
+      tbody.appendChild(detailTr);
+
+      // Toggle on click
+      (function(row, detail) {
+        row.addEventListener('click', function() {
+          detail.classList.toggle('hidden');
+        });
+      })(tr, detailTr);
     }
   }
 

@@ -47,8 +47,8 @@ local function handler()
     -- Get ranked
     local ranked, _ = funcs.new():call("app.lc:riot_api_get_ranked", {puuid = puuid})
 
-    -- Get mastery top 10
-    local mastery, _ = funcs.new():call("app.lc:riot_api_get_mastery", {puuid = puuid, count = 10})
+    -- Get mastery top 20
+    local mastery, _ = funcs.new():call("app.lc:riot_api_get_mastery", {puuid = puuid, count = 20})
 
     -- Get DDragon champions data for name/icon resolution
     local dd_data, _ = funcs.new():call("app.lc:ddragon_get_champions", {})
@@ -66,7 +66,6 @@ local function handler()
                 championPoints = m.championPoints,
                 championPointsSinceLastLevel = m.championPointsSinceLastLevel,
                 championPointsUntilNextLevel = m.championPointsUntilNextLevel,
-                tokensEarned = m.tokensEarned,
                 lastPlayTime = m.lastPlayTime,
                 chestGranted = m.chestGranted,
                 champion_name = champ and champ.name or ("Champion " .. m.championId),
@@ -78,7 +77,7 @@ local function handler()
     end
 
     -- Get recent match IDs
-    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 5})
+    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 20})
 
     -- Fetch full match details
     local matches = {}
@@ -111,6 +110,40 @@ local function handler()
                     local champ = champions[tostring(participant.championId)]
                     local champ_image = champ and champ.image or nil
 
+                    -- Build allies and enemies lists
+                    local allies = {}
+                    local enemies = {}
+                    local my_team = participant.teamId
+                    if match_data.info and match_data.info.participants then
+                        for _, p in ipairs(match_data.info.participants) do
+                            local p_champ = champions[tostring(p.championId)]
+                            local p_cs = (p.totalMinionsKilled or 0) + (p.neutralMinionsKilled or 0)
+                            local player_data = {
+                                summoner_name = p.riotIdGameName or p.summonerName or "Unknown",
+                                tag_line = p.riotIdTagline or "",
+                                champion_name = p.championName,
+                                champion_image = p_champ and p_champ.image or nil,
+                                kills = p.kills or 0,
+                                deaths = p.deaths or 0,
+                                assists = p.assists or 0,
+                                cs = p_cs,
+                                total_damage = p.totalDamageDealtToChampions or 0,
+                                gold_earned = p.goldEarned or 0,
+                                vision_score = p.visionScore or 0,
+                                position = p.teamPosition or "",
+                                win = p.win,
+                            }
+                            if p.puuid == puuid then
+                                player_data.is_me = true
+                            end
+                            if p.teamId == my_team then
+                                table.insert(allies, player_data)
+                            else
+                                table.insert(enemies, player_data)
+                            end
+                        end
+                    end
+
                     table.insert(matches, {
                         match_id = mid,
                         champion_name = participant.championName,
@@ -128,6 +161,8 @@ local function handler()
                         game_mode = info.gameMode,
                         position = participant.teamPosition or "",
                         queue_id = info.queueId,
+                        allies = allies,
+                        enemies = enemies,
                     })
                 end
             end

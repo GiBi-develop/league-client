@@ -167,6 +167,18 @@ local function init_schema()
     -- Surrender/first blood
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN game_ended_surrender INTEGER DEFAULT 0") end)
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN first_blood INTEGER DEFAULT 0") end)
+    -- Challenges-based stats
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN solo_kills INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN turret_plates INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN dragon_takedowns INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN baron_takedowns INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN rift_herald_takedowns INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN vision_per_min REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN lane_minions_first10 INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN max_cs_advantage REAL DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN max_level_lead INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN turret_takedowns INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN inhibitor_takedowns INTEGER DEFAULT 0") end)
 
     -- Match participants extra columns
     pcall(function() db:execute("ALTER TABLE match_participants ADD COLUMN double_kills INTEGER DEFAULT 0") end)
@@ -240,6 +252,45 @@ local function init_schema()
     db:execute([[
         CREATE INDEX IF NOT EXISTS idx_match_participants_puuid
         ON match_participants(puuid)
+    ]])
+
+    -- Favorites table (#18)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            puuid TEXT NOT NULL UNIQUE,
+            game_name TEXT NOT NULL,
+            tag_line TEXT NOT NULL,
+            platform TEXT DEFAULT 'EUW1',
+            region TEXT DEFAULT 'EUROPE',
+            note TEXT DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    -- Match notes table (#27)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS match_notes (
+            match_id TEXT NOT NULL,
+            puuid TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (match_id, puuid)
+        )
+    ]])
+
+    -- Goals table (#26)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS player_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            puuid TEXT NOT NULL,
+            goal_type TEXT NOT NULL,
+            target_value TEXT NOT NULL,
+            current_value TEXT DEFAULT '',
+            completed INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            completed_at TEXT
+        )
     ]])
 
     db:release()
@@ -462,9 +513,13 @@ local function save_match(input)
              wards_placed, wards_killed, control_wards,
              kill_participation, damage_share, gold_per_min, damage_per_min,
              perks_primary_style, perks_sub_style, perks_keystone,
-             champ_level, gold_spent, game_ended_surrender, first_blood)
+             champ_level, gold_spent, game_ended_surrender, first_blood,
+             solo_kills, turret_plates, dragon_takedowns, baron_takedowns,
+             rift_herald_takedowns, vision_per_min, lane_minions_first10,
+             max_cs_advantage, max_level_lead, turret_takedowns, inhibitor_takedowns)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
         input.match_id,
         input.puuid,
@@ -509,6 +564,17 @@ local function save_match(input)
         input.gold_spent or 0,
         input.game_ended_surrender and 1 or 0,
         input.first_blood and 1 or 0,
+        input.solo_kills or 0,
+        input.turret_plates or 0,
+        input.dragon_takedowns or 0,
+        input.baron_takedowns or 0,
+        input.rift_herald_takedowns or 0,
+        input.vision_per_min or 0,
+        input.lane_minions_first10 or 0,
+        input.max_cs_advantage or 0,
+        input.max_level_lead or 0,
+        input.turret_takedowns or 0,
+        input.inhibitor_takedowns or 0,
     })
     db:release()
 
@@ -975,6 +1041,197 @@ local function get_ddragon_cache(input)
     return rows[1]
 end
 
+--- Save/remove favorite player (#18).
+local function save_favorite(input)
+    if not input or not input.puuid then
+        return {error = "puuid is required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local _, exec_err = db:execute([[
+        INSERT INTO favorites (puuid, game_name, tag_line, platform, region, note, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(puuid) DO UPDATE SET
+            game_name = excluded.game_name,
+            tag_line = excluded.tag_line,
+            platform = excluded.platform,
+            region = excluded.region,
+            note = excluded.note
+    ]], {
+        input.puuid,
+        input.game_name or "",
+        input.tag_line or "",
+        input.platform or "EUW1",
+        input.region or "EUROPE",
+        input.note or "",
+    })
+    db:release()
+
+    if exec_err then return {error = tostring(exec_err)} end
+    return {ok = true}
+end
+
+local function remove_favorite(input)
+    if not input or not input.puuid then
+        return {error = "puuid is required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute("DELETE FROM favorites WHERE puuid = ?", {input.puuid})
+    db:release()
+    return {ok = true}
+end
+
+local function get_favorites()
+    local db, err = sql.get(DB_ID)
+    if err then return {favorites = {}, error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        SELECT f.*,
+               pr_solo.tier as solo_tier, pr_solo.rank as solo_rank,
+               pr_solo.league_points as solo_lp, pr_solo.wins as solo_wins, pr_solo.losses as solo_losses
+        FROM favorites f
+        LEFT JOIN player_ranked pr_solo ON f.puuid = pr_solo.puuid AND pr_solo.queue_type = 'RANKED_SOLO_5x5'
+        ORDER BY f.created_at DESC
+    ]])
+    db:release()
+
+    if qerr then return {favorites = {}, error = tostring(qerr)} end
+    return {favorites = rows or {}}
+end
+
+local function is_favorite(input)
+    if not input or not input.puuid then return {is_favorite = false} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {is_favorite = false} end
+
+    local rows, _ = db:query("SELECT 1 FROM favorites WHERE puuid = ? LIMIT 1", {input.puuid})
+    db:release()
+    return {is_favorite = (rows and #rows > 0) and true or false}
+end
+
+--- Match notes (#27).
+local function save_match_note(input)
+    if not input or not input.match_id or not input.puuid then
+        return {error = "match_id and puuid are required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local _, exec_err = db:execute([[
+        INSERT INTO match_notes (match_id, puuid, note, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(match_id, puuid) DO UPDATE SET
+            note = excluded.note,
+            updated_at = datetime('now')
+    ]], {
+        input.match_id,
+        input.puuid,
+        input.note or "",
+    })
+    db:release()
+
+    if exec_err then return {error = tostring(exec_err)} end
+    return {ok = true}
+end
+
+local function get_match_notes(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query(
+        "SELECT match_id, note FROM match_notes WHERE puuid = ? AND note != ''",
+        {input.puuid}
+    )
+    db:release()
+
+    if qerr then return {notes = {}} end
+    local map = {}
+    if rows then
+        for _, r in ipairs(rows) do
+            map[r.match_id] = r.note
+        end
+    end
+    return {notes = map}
+end
+
+--- Goals (#26).
+local function save_goal(input)
+    if not input or not input.puuid or not input.goal_type or not input.target_value then
+        return {error = "puuid, goal_type, and target_value are required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local _, exec_err = db:execute([[
+        INSERT INTO player_goals (puuid, goal_type, target_value, current_value, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+    ]], {
+        input.puuid,
+        input.goal_type,
+        input.target_value,
+        input.current_value or "",
+    })
+    db:release()
+
+    if exec_err then return {error = tostring(exec_err)} end
+    return {ok = true}
+end
+
+local function get_goals(input)
+    if not input or not input.puuid then return {goals = {}} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {goals = {}} end
+
+    local rows, qerr = db:query(
+        "SELECT * FROM player_goals WHERE puuid = ? ORDER BY completed ASC, created_at DESC",
+        {input.puuid}
+    )
+    db:release()
+
+    if qerr then return {goals = {}} end
+    return {goals = rows or {}}
+end
+
+local function complete_goal(input)
+    if not input or not input.id then
+        return {error = "id is required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute(
+        "UPDATE player_goals SET completed = 1, completed_at = datetime('now') WHERE id = ?",
+        {input.id}
+    )
+    db:release()
+    return {ok = true}
+end
+
+local function delete_goal(input)
+    if not input or not input.id then
+        return {error = "id is required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute("DELETE FROM player_goals WHERE id = ?", {input.id})
+    db:release()
+    return {ok = true}
+end
+
 return {
     init_schema = init_schema,
     get_player = get_player,
@@ -999,4 +1256,14 @@ return {
     get_winrate_history = get_winrate_history,
     save_ddragon_cache = save_ddragon_cache,
     get_ddragon_cache = get_ddragon_cache,
+    save_favorite = save_favorite,
+    remove_favorite = remove_favorite,
+    get_favorites = get_favorites,
+    is_favorite = is_favorite,
+    save_match_note = save_match_note,
+    get_match_notes = get_match_notes,
+    save_goal = save_goal,
+    get_goals = get_goals,
+    complete_goal = complete_goal,
+    delete_goal = delete_goal,
 }

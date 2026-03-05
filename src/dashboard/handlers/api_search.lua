@@ -191,6 +191,18 @@ local function build_match_entry(mid, match_data, puuid, champions)
         gold_spent = participant.goldSpent or 0,
         game_ended_surrender = participant.gameEndedInSurrender or false,
         first_blood = participant.firstBloodKill or false,
+        -- Challenges-based stats
+        solo_kills = challenges.soloKills or 0,
+        turret_plates = challenges.turretPlatesTaken or 0,
+        dragon_takedowns = challenges.dragonTakedowns or 0,
+        baron_takedowns = challenges.baronTakedowns or 0,
+        rift_herald_takedowns = challenges.riftHeraldTakedowns or 0,
+        vision_per_min = challenges.visionScorePerMinute or 0,
+        lane_minions_first10 = challenges.laneMinionsFirst10Minutes or 0,
+        max_cs_advantage = challenges.maxCsAdvantageOnLaneOpponent or 0,
+        max_level_lead = challenges.maxLevelLeadLaneOpponent or 0,
+        turret_takedowns = challenges.turretTakedowns or 0,
+        inhibitor_takedowns = challenges.inhibitorTakedowns or 0,
         -- Teams
         allies = allies,
         enemies = enemies,
@@ -317,6 +329,18 @@ local function build_cached_match(row, participants, puuid, champions)
         champ_level = row.champ_level or 0,
         game_ended_surrender = (row.game_ended_surrender or 0) == 1,
         first_blood = (row.first_blood or 0) == 1,
+        -- Challenges-based stats
+        solo_kills = row.solo_kills or 0,
+        turret_plates = row.turret_plates or 0,
+        dragon_takedowns = row.dragon_takedowns or 0,
+        baron_takedowns = row.baron_takedowns or 0,
+        rift_herald_takedowns = row.rift_herald_takedowns or 0,
+        vision_per_min = row.vision_per_min or 0,
+        lane_minions_first10 = row.lane_minions_first10 or 0,
+        max_cs_advantage = row.max_cs_advantage or 0,
+        max_level_lead = row.max_level_lead or 0,
+        turret_takedowns = row.turret_takedowns or 0,
+        inhibitor_takedowns = row.inhibitor_takedowns or 0,
         allies = allies,
         enemies = enemies,
     }
@@ -329,12 +353,26 @@ local function handler()
 
     local game_name = req:query("name")
     local tag_line = req:query("tag")
+    local req_platform = req:query("platform")   -- #17 multi-region
+    local req_region = req:query("region")         -- #17 multi-region
 
     if not game_name or game_name == "" or not tag_line or tag_line == "" then
         res:set_status(400)
         res:write_json({error = "name and tag query parameters are required"})
         return
     end
+
+    -- Region mapping (#17): platform -> region
+    local PLATFORM_TO_REGION = {
+        BR1 = "AMERICAS", LA1 = "AMERICAS", LA2 = "AMERICAS", NA1 = "AMERICAS", OC1 = "AMERICAS",
+        EUW1 = "EUROPE", EUN1 = "EUROPE", RU = "EUROPE", TR1 = "EUROPE", ME1 = "EUROPE",
+        KR = "ASIA", JP1 = "ASIA",
+        PH2 = "SEA", SG2 = "SEA", TH2 = "SEA", TW2 = "SEA", VN2 = "SEA",
+    }
+
+    -- Use request params or fall back to env
+    local platform = req_platform or env.get("RIOT_PLATFORM") or "EUW1"
+    local region = req_region or PLATFORM_TO_REGION[platform] or env.get("RIOT_REGION") or "EUROPE"
 
     -- Open storage
     local storage, serr = contract.open("app.lc.lib:player_storage")
@@ -343,6 +381,7 @@ local function handler()
     local account, err = funcs.new():call("app.lc:riot_api_get_account", {
         game_name = game_name,
         tag_line = tag_line,
+        region = region,
     })
 
     if err then
@@ -362,10 +401,10 @@ local function handler()
     local puuid = account.puuid
 
     -- Get summoner, ranked, mastery, challenges (always fresh)
-    local summoner, _ = funcs.new():call("app.lc:riot_api_get_summoner", {puuid = puuid})
-    local ranked, _ = funcs.new():call("app.lc:riot_api_get_ranked", {puuid = puuid})
-    local mastery, _ = funcs.new():call("app.lc:riot_api_get_mastery", {puuid = puuid, count = 20})
-    local challenges, _ = funcs.new():call("app.lc:riot_api_get_challenges", {puuid = puuid})
+    local summoner, _ = funcs.new():call("app.lc:riot_api_get_summoner", {puuid = puuid, platform = platform})
+    local ranked, _ = funcs.new():call("app.lc:riot_api_get_ranked", {puuid = puuid, platform = platform})
+    local mastery, _ = funcs.new():call("app.lc:riot_api_get_mastery", {puuid = puuid, count = 20, platform = platform})
+    local challenges, _ = funcs.new():call("app.lc:riot_api_get_challenges", {puuid = puuid, region = region})
 
     -- DDragon data with caching
     local dd_version = "14.5.1"
@@ -418,8 +457,8 @@ local function handler()
                 summoner_level = summoner.summonerLevel,
                 profile_icon_id = summoner.profileIconId,
                 revision_date = summoner.revisionDate,
-                platform = env.get("RIOT_PLATFORM") or "EUW1",
-                region = env.get("RIOT_REGION") or "EUROPE",
+                platform = platform,
+                region = region,
             })
         end
 
@@ -478,7 +517,7 @@ local function handler()
             tag_line = account.tagLine or tag_line,
             summoner_level = summoner and summoner.summonerLevel,
             profile_icon_id = summoner and summoner.profileIconId,
-            platform = env.get("RIOT_PLATFORM") or "EUW1",
+            platform = platform,
         })
     end
 
@@ -504,7 +543,7 @@ local function handler()
     end
 
     -- ── Matches with caching ──────────────────────────────────
-    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 20})
+    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 20, region = region})
 
     local matches = {}
     if match_ids and #match_ids > 0 then
@@ -558,7 +597,7 @@ local function handler()
 
         -- Fetch only NEW matches from API
         for _, mid in ipairs(new_ids) do
-            local match_data, merr = funcs.new():call("app.lc:riot_api_get_match", {match_id = mid})
+            local match_data, merr = funcs.new():call("app.lc:riot_api_get_match", {match_id = mid, region = region})
             if match_data and not merr then
                 local entry = build_match_entry(mid, match_data, puuid, champions)
                 if entry then
@@ -608,6 +647,17 @@ local function handler()
                             gold_spent = entry.gold_spent,
                             game_ended_surrender = entry.game_ended_surrender,
                             first_blood = entry.first_blood,
+                            solo_kills = entry.solo_kills,
+                            turret_plates = entry.turret_plates,
+                            dragon_takedowns = entry.dragon_takedowns,
+                            baron_takedowns = entry.baron_takedowns,
+                            rift_herald_takedowns = entry.rift_herald_takedowns,
+                            vision_per_min = entry.vision_per_min,
+                            lane_minions_first10 = entry.lane_minions_first10,
+                            max_cs_advantage = entry.max_cs_advantage,
+                            max_level_lead = entry.max_level_lead,
+                            turret_takedowns = entry.turret_takedowns,
+                            inhibitor_takedowns = entry.inhibitor_takedowns,
                         })
 
                         if entry._raw_participants then
@@ -653,7 +703,7 @@ local function handler()
     end
 
     -- ── Live game ─────────────────────────────────────────────
-    local active_game, _ = funcs.new():call("app.lc:riot_api_get_active_game", {puuid = puuid})
+    local active_game, _ = funcs.new():call("app.lc:riot_api_get_active_game", {puuid = puuid, platform = platform})
     local live_game = nil
     if active_game and active_game.gameId then
         local live_participants = {}
@@ -747,6 +797,38 @@ local function handler()
         local champ_stats = {}
         local role_counts = {}
         local total_pentas, total_quadras, total_triples = 0, 0, 0
+        local first_blood_count = 0
+        local surrender_count = 0
+        local total_duration_win, total_duration_loss = 0, 0
+        local total_gold_spent = 0
+        local total_damage_taken = 0
+        -- Challenges accumulators
+        local total_solo_kills = 0
+        local total_turret_plates = 0
+        local total_dragon_td = 0
+        local total_baron_td = 0
+        local total_herald_td = 0
+        local total_vision_pm = 0
+        local total_cs_first10 = 0
+        local total_cs_advantage = 0
+        local total_level_lead = 0
+        local total_turret_td = 0
+        local total_inhibitor_td = 0
+        local cs_first10_count = 0 -- games with data
+        local total_gpm, total_dpm = 0, 0
+        local unique_champs = {}
+        local spell_combos = {}
+        -- Win/loss split accumulators
+        local w_k, w_d, w_a, w_cs, w_dmg, w_gold, w_vis, w_kp = 0, 0, 0, 0, 0, 0, 0, 0
+        local l_k, l_d, l_a, l_cs, l_dmg, l_gold, l_vis, l_kp = 0, 0, 0, 0, 0, 0, 0, 0
+        -- Enemy matchup tracking
+        local enemy_matchups = {}
+        -- Lane opponent tracking
+        local lane_matchups = {}
+        -- Ally synergy tracking
+        local ally_synergy = {}
+        -- Item frequency tracking
+        local item_freq = {}
 
         for i, m in ipairs(matches) do
             total_k = total_k + m.kills
@@ -769,6 +851,67 @@ local function handler()
             total_triples = total_triples + (m.triple_kills or 0)
             if m.win then wins = wins + 1 else losses = losses + 1 end
 
+            -- Advanced stats collection
+            if m.first_blood then first_blood_count = first_blood_count + 1 end
+            if m.game_ended_surrender then surrender_count = surrender_count + 1 end
+            total_gold_spent = total_gold_spent + (m.gold_spent or 0)
+            -- Challenges accumulation
+            total_solo_kills = total_solo_kills + (m.solo_kills or 0)
+            total_turret_plates = total_turret_plates + (m.turret_plates or 0)
+            total_dragon_td = total_dragon_td + (m.dragon_takedowns or 0)
+            total_baron_td = total_baron_td + (m.baron_takedowns or 0)
+            total_herald_td = total_herald_td + (m.rift_herald_takedowns or 0)
+            total_vision_pm = total_vision_pm + (m.vision_per_min or 0)
+            total_turret_td = total_turret_td + (m.turret_takedowns or 0)
+            total_inhibitor_td = total_inhibitor_td + (m.inhibitor_takedowns or 0)
+            if (m.lane_minions_first10 or 0) > 0 then
+                total_cs_first10 = total_cs_first10 + m.lane_minions_first10
+                cs_first10_count = cs_first10_count + 1
+            end
+            total_cs_advantage = total_cs_advantage + (m.max_cs_advantage or 0)
+            total_level_lead = total_level_lead + (m.max_level_lead or 0)
+            total_damage_taken = total_damage_taken + (m.damage_taken or 0)
+            total_gpm = total_gpm + (m.gold_per_min or 0)
+            total_dpm = total_dpm + (m.damage_per_min or 0)
+            unique_champs[m.champion_name or "Unknown"] = true
+            if m.win then
+                total_duration_win = total_duration_win + (m.game_duration_raw or 0)
+                w_k = w_k + m.kills; w_d = w_d + m.deaths; w_a = w_a + m.assists
+                w_cs = w_cs + (m.cs_per_min or 0); w_dmg = w_dmg + m.total_damage
+                w_gold = w_gold + m.gold_earned; w_vis = w_vis + (m.vision_score or 0)
+                w_kp = w_kp + (m.kill_participation or 0)
+            else
+                total_duration_loss = total_duration_loss + (m.game_duration_raw or 0)
+                l_k = l_k + m.kills; l_d = l_d + m.deaths; l_a = l_a + m.assists
+                l_cs = l_cs + (m.cs_per_min or 0); l_dmg = l_dmg + m.total_damage
+                l_gold = l_gold + m.gold_earned; l_vis = l_vis + (m.vision_score or 0)
+                l_kp = l_kp + (m.kill_participation or 0)
+            end
+
+            -- Spell combo tracking
+            local s1 = m.summoner1 or 0
+            local s2 = m.summoner2 or 0
+            if s1 > s2 then s1, s2 = s2, s1 end
+            local combo_key = s1 .. "_" .. s2
+            if not spell_combos[combo_key] then
+                spell_combos[combo_key] = {s1 = s1, s2 = s2, games = 0, wins = 0}
+            end
+            spell_combos[combo_key].games = spell_combos[combo_key].games + 1
+            if m.win then spell_combos[combo_key].wins = spell_combos[combo_key].wins + 1 end
+
+            -- Enemy matchup tracking
+            if m.enemies then
+                for _, e in ipairs(m.enemies) do
+                    if e.champion_name then
+                        if not enemy_matchups[e.champion_name] then
+                            enemy_matchups[e.champion_name] = {games = 0, wins = 0, image = e.champion_image}
+                        end
+                        enemy_matchups[e.champion_name].games = enemy_matchups[e.champion_name].games + 1
+                        if m.win then enemy_matchups[e.champion_name].wins = enemy_matchups[e.champion_name].wins + 1 end
+                    end
+                end
+            end
+
             if i == 1 then
                 streak_type = m.win and "W" or "L"
                 streak = 1
@@ -780,7 +923,8 @@ local function handler()
             if not champ_stats[cn] then
                 champ_stats[cn] = {wins = 0, losses = 0, kills = 0, deaths = 0, assists = 0, games = 0, image = m.champion_image,
                     total_cs_min = 0, total_damage = 0, total_gold = 0, total_vision = 0, total_kp = 0, total_ds = 0,
-                    positions = {}, keystones = {}}
+                    total_phys = 0, total_magic = 0, total_true = 0,
+                    positions = {}, keystones = {}, keystone_wins = {}}
             end
             local cs = champ_stats[cn]
             cs.games = cs.games + 1
@@ -793,6 +937,9 @@ local function handler()
             cs.total_vision = cs.total_vision + (m.vision_score or 0)
             cs.total_kp = cs.total_kp + (m.kill_participation or 0)
             cs.total_ds = cs.total_ds + (m.damage_share or 0)
+            cs.total_phys = cs.total_phys + (m.physical_damage or 0)
+            cs.total_magic = cs.total_magic + (m.magic_damage or 0)
+            cs.total_true = cs.total_true + (m.true_damage or 0)
             if m.win then cs.wins = cs.wins + 1 else cs.losses = cs.losses + 1 end
             if m.position and m.position ~= "" then
                 cs.positions[m.position] = (cs.positions[m.position] or 0) + 1
@@ -800,11 +947,58 @@ local function handler()
             if m.perks_keystone and m.perks_keystone > 0 then
                 local ksKey = tostring(m.perks_keystone)
                 cs.keystones[ksKey] = (cs.keystones[ksKey] or 0) + 1
+                if m.win then cs.keystone_wins[ksKey] = (cs.keystone_wins[ksKey] or 0) + 1 end
             end
 
             local pos = m.position
             if pos and pos ~= "" then
                 role_counts[pos] = (role_counts[pos] or 0) + 1
+            end
+
+            -- Lane opponent tracking (enemy in same position)
+            if m.position and m.position ~= "" and m.enemies then
+                for _, e in ipairs(m.enemies) do
+                    if e.position == m.position and e.champion_name then
+                        local lk = e.champion_name
+                        if not lane_matchups[lk] then
+                            lane_matchups[lk] = {games = 0, wins = 0, image = e.champion_image,
+                                my_kills = 0, my_deaths = 0, opp_kills = 0, opp_deaths = 0}
+                        end
+                        lane_matchups[lk].games = lane_matchups[lk].games + 1
+                        if m.win then lane_matchups[lk].wins = lane_matchups[lk].wins + 1 end
+                        lane_matchups[lk].my_kills = lane_matchups[lk].my_kills + m.kills
+                        lane_matchups[lk].my_deaths = lane_matchups[lk].my_deaths + m.deaths
+                        lane_matchups[lk].opp_kills = lane_matchups[lk].opp_kills + (e.kills or 0)
+                        lane_matchups[lk].opp_deaths = lane_matchups[lk].opp_deaths + (e.deaths or 0)
+                    end
+                end
+            end
+
+            -- Champion synergy (ally champions when winning/losing)
+            if m.allies then
+                for _, a in ipairs(m.allies) do
+                    if not a.is_me and a.champion_name then
+                        if not ally_synergy[a.champion_name] then
+                            ally_synergy[a.champion_name] = {games = 0, wins = 0, image = a.champion_image}
+                        end
+                        ally_synergy[a.champion_name].games = ally_synergy[a.champion_name].games + 1
+                        if m.win then ally_synergy[a.champion_name].wins = ally_synergy[a.champion_name].wins + 1 end
+                    end
+                end
+            end
+
+            -- Item frequency tracking
+            if m.items then
+                for _, item_id in ipairs(m.items) do
+                    if item_id and item_id > 0 then
+                        local ik = tostring(item_id)
+                        if not item_freq[ik] then
+                            item_freq[ik] = {id = item_id, count = 0, wins = 0}
+                        end
+                        item_freq[ik].count = item_freq[ik].count + 1
+                        if m.win then item_freq[ik].wins = item_freq[ik].wins + 1 end
+                    end
+                end
             end
         end
 
@@ -823,6 +1017,25 @@ local function handler()
             for ks, cnt in pairs(cs.keystones) do
                 if cnt > top_ks_count then top_ks = tonumber(ks); top_ks_count = cnt end
             end
+
+            -- All keystones with WR
+            local rune_list = {}
+            for ks, cnt in pairs(cs.keystones) do
+                local ks_wins = cs.keystone_wins[ks] or 0
+                table.insert(rune_list, {
+                    keystone = tonumber(ks),
+                    games = cnt,
+                    wins = ks_wins,
+                    winrate = math.floor(ks_wins / cnt * 100),
+                })
+            end
+            table.sort(rune_list, function(a, b) return a.games > b.games end)
+
+            -- Damage composition
+            local c_dmg_total = cs.total_phys + cs.total_magic + cs.total_true
+            local phys_pct = c_dmg_total > 0 and math.floor(cs.total_phys / c_dmg_total * 100) or 0
+            local magic_pct = c_dmg_total > 0 and math.floor(cs.total_magic / c_dmg_total * 100) or 0
+            local true_pct = c_dmg_total > 0 and (100 - phys_pct - magic_pct) or 0
 
             table.insert(champ_list, {
                 champion_name = name,
@@ -844,6 +1057,10 @@ local function handler()
                 avg_ds = math.floor(cs.total_ds / cs.games * 1000) / 10,
                 top_position = top_pos,
                 top_keystone = top_ks,
+                runes = rune_list,
+                dmg_physical_pct = phys_pct,
+                dmg_magic_pct = magic_pct,
+                dmg_true_pct = true_pct,
             })
         end
         table.sort(champ_list, function(a, b) return a.games > b.games end)
@@ -882,7 +1099,426 @@ local function handler()
             streak_type = streak_type,
             top_champions = champ_list,
             roles = role_list,
+            -- Advanced stats
+            first_blood_rate = math.floor(first_blood_count / n * 100),
+            surrender_rate = math.floor(surrender_count / n * 100),
+            avg_duration_win = wins > 0 and math.floor(total_duration_win / wins) or 0,
+            avg_duration_loss = losses > 0 and math.floor(total_duration_loss / losses) or 0,
+            avg_gold_per_min = math.floor(total_gpm / n * 10) / 10,
+            avg_damage_per_min = math.floor(total_dpm / n),
+            avg_damage_taken = math.floor(total_damage_taken / n),
+            damage_per_gold = total_gold > 0 and math.floor(total_dmg / total_gold * 100) / 100 or 0,
+            unique_champions = 0,
+            -- Challenges-based averages
+            avg_solo_kills = math.floor(total_solo_kills / n * 10) / 10,
+            avg_turret_plates = math.floor(total_turret_plates / n * 10) / 10,
+            avg_dragon_takedowns = math.floor(total_dragon_td / n * 10) / 10,
+            avg_baron_takedowns = math.floor(total_baron_td / n * 10) / 10,
+            avg_herald_takedowns = math.floor(total_herald_td / n * 10) / 10,
+            avg_vision_per_min = math.floor(total_vision_pm / n * 100) / 100,
+            avg_cs_first10 = cs_first10_count > 0 and math.floor(total_cs_first10 / cs_first10_count) or 0,
+            avg_cs_advantage = math.floor(total_cs_advantage / n * 10) / 10,
+            avg_level_lead = math.floor(total_level_lead / n * 10) / 10,
+            avg_turret_takedowns = math.floor(total_turret_td / n * 10) / 10,
+            avg_inhibitor_takedowns = math.floor(total_inhibitor_td / n * 10) / 10,
+            total_solo_kills = total_solo_kills,
+            total_objectives = total_dragon_td + total_baron_td + total_herald_td,
+            -- Snowball index: composite of cs advantage + level lead
+            snowball_index = math.floor((total_cs_advantage / n + total_level_lead / n * 5) * 10) / 10,
+            -- Win/loss split
+            win_stats = wins > 0 and {
+                avg_kills = math.floor(w_k / wins * 10) / 10,
+                avg_deaths = math.floor(w_d / wins * 10) / 10,
+                avg_assists = math.floor(w_a / wins * 10) / 10,
+                avg_kda = w_d > 0 and math.floor((w_k + w_a) / w_d * 10) / 10 or 0,
+                avg_cs_min = math.floor(w_cs / wins * 10) / 10,
+                avg_damage = math.floor(w_dmg / wins),
+                avg_gold = math.floor(w_gold / wins),
+                avg_vision = math.floor(w_vis / wins * 10) / 10,
+                avg_kp = math.floor(w_kp / wins * 1000) / 10,
+            } or nil,
+            loss_stats = losses > 0 and {
+                avg_kills = math.floor(l_k / losses * 10) / 10,
+                avg_deaths = math.floor(l_d / losses * 10) / 10,
+                avg_assists = math.floor(l_a / losses * 10) / 10,
+                avg_kda = l_d > 0 and math.floor((l_k + l_a) / l_d * 10) / 10 or 0,
+                avg_cs_min = math.floor(l_cs / losses * 10) / 10,
+                avg_damage = math.floor(l_dmg / losses),
+                avg_gold = math.floor(l_gold / losses),
+                avg_vision = math.floor(l_vis / losses * 10) / 10,
+                avg_kp = math.floor(l_kp / losses * 1000) / 10,
+            } or nil,
         }
+
+        -- Count unique champs
+        local uc = 0
+        for _ in pairs(unique_champs) do uc = uc + 1 end
+        stats.unique_champions = uc
+
+        -- Pool depth classification
+        local pool_label = "Versatile"
+        if #champ_list > 0 then
+            local top_pct = math.floor(champ_list[1].games / n * 100)
+            if top_pct >= 60 then pool_label = "One-Trick"
+            elseif top_pct >= 40 then pool_label = "Specialist"
+            elseif uc <= 3 then pool_label = "Specialist"
+            else pool_label = "Versatile" end
+        end
+        stats.pool_depth = pool_label
+        stats.pool_top_pct = #champ_list > 0 and math.floor(champ_list[1].games / n * 100) or 0
+
+        -- Game length preference
+        local avg_dur_all = 0
+        local short_wins, short_total = 0, 0  -- < 25 min
+        local long_wins, long_total = 0, 0    -- > 30 min
+        for _, m in ipairs(matches) do
+            local dur = m.game_duration_raw or 0
+            avg_dur_all = avg_dur_all + dur
+            if dur > 0 and dur < 1500 then
+                short_total = short_total + 1
+                if m.win then short_wins = short_wins + 1 end
+            elseif dur >= 1800 then
+                long_total = long_total + 1
+                if m.win then long_wins = long_wins + 1 end
+            end
+        end
+        stats.avg_game_duration = n > 0 and math.floor(avg_dur_all / n) or 0
+        stats.short_game_wr = short_total >= 2 and math.floor(short_wins / short_total * 100) or nil
+        stats.short_game_count = short_total
+        stats.long_game_wr = long_total >= 2 and math.floor(long_wins / long_total * 100) or nil
+        stats.long_game_count = long_total
+        local pref_label = "Balanced"
+        if stats.short_game_wr and stats.long_game_wr then
+            if stats.short_game_wr > stats.long_game_wr + 10 then pref_label = "Early Game"
+            elseif stats.long_game_wr > stats.short_game_wr + 10 then pref_label = "Late Game" end
+        end
+        stats.game_length_pref = pref_label
+
+        -- Spell combos
+        local combo_list = {}
+        for _, sc in pairs(spell_combos) do
+            table.insert(combo_list, sc)
+        end
+        table.sort(combo_list, function(a, b) return a.games > b.games end)
+        stats.spell_combos = combo_list
+
+        -- Enemy matchups (sorted by games)
+        local matchup_list = {}
+        for name, mu in pairs(enemy_matchups) do
+            if mu.games >= 2 then
+                table.insert(matchup_list, {
+                    champion_name = name,
+                    champion_image = mu.image,
+                    games = mu.games,
+                    wins = mu.wins,
+                    losses = mu.games - mu.wins,
+                    winrate = math.floor(mu.wins / mu.games * 100),
+                })
+            end
+        end
+        table.sort(matchup_list, function(a, b) return a.games > b.games end)
+        stats.enemy_matchups = matchup_list
+
+        -- Lane opponent matchups (sorted by games)
+        local lane_list = {}
+        for name, lm in pairs(lane_matchups) do
+            if lm.games >= 2 then
+                table.insert(lane_list, {
+                    champion_name = name,
+                    champion_image = lm.image,
+                    games = lm.games,
+                    wins = lm.wins,
+                    losses = lm.games - lm.wins,
+                    winrate = math.floor(lm.wins / lm.games * 100),
+                    my_avg_kills = math.floor(lm.my_kills / lm.games * 10) / 10,
+                    my_avg_deaths = math.floor(lm.my_deaths / lm.games * 10) / 10,
+                    opp_avg_kills = math.floor(lm.opp_kills / lm.games * 10) / 10,
+                    opp_avg_deaths = math.floor(lm.opp_deaths / lm.games * 10) / 10,
+                })
+            end
+        end
+        table.sort(lane_list, function(a, b) return a.games > b.games end)
+        stats.lane_matchups = lane_list
+
+        -- Ally synergy (sorted by games, min 2)
+        local synergy_list = {}
+        for name, sy in pairs(ally_synergy) do
+            if sy.games >= 2 then
+                table.insert(synergy_list, {
+                    champion_name = name,
+                    champion_image = sy.image,
+                    games = sy.games,
+                    wins = sy.wins,
+                    losses = sy.games - sy.wins,
+                    winrate = math.floor(sy.wins / sy.games * 100),
+                })
+            end
+        end
+        table.sort(synergy_list, function(a, b) return a.games > b.games end)
+        stats.ally_synergy = synergy_list
+
+        -- Common items (sorted by frequency, top 15, skip boots/wards/trinkets)
+        local item_list = {}
+        for _, it in pairs(item_freq) do
+            if it.count >= 2 then
+                table.insert(item_list, {
+                    item_id = it.id,
+                    count = it.count,
+                    wins = it.wins,
+                    losses = it.count - it.wins,
+                    winrate = math.floor(it.wins / it.count * 100),
+                    pick_rate = math.floor(it.count / n * 100),
+                })
+            end
+        end
+        table.sort(item_list, function(a, b) return a.count > b.count end)
+        -- Take top 15
+        local top_items = {}
+        for i = 1, math.min(#item_list, 15) do
+            table.insert(top_items, item_list[i])
+        end
+        stats.common_items = top_items
+
+        -- Recent form (last 5 games)
+        local recent_n = math.min(5, n)
+        if recent_n > 0 then
+            local rf_k, rf_d, rf_a, rf_w, rf_cs, rf_dmg = 0, 0, 0, 0, 0, 0
+            for i = 1, recent_n do
+                local rm = matches[i]
+                rf_k = rf_k + rm.kills
+                rf_d = rf_d + rm.deaths
+                rf_a = rf_a + rm.assists
+                rf_cs = rf_cs + (rm.cs_per_min or 0)
+                rf_dmg = rf_dmg + rm.total_damage
+                if rm.win then rf_w = rf_w + 1 end
+            end
+            stats.recent_form = {
+                games = recent_n,
+                wins = rf_w,
+                winrate = math.floor(rf_w / recent_n * 100),
+                avg_kda = rf_d > 0 and math.floor((rf_k + rf_a) / rf_d * 10) / 10 or 0,
+                avg_kills = math.floor(rf_k / recent_n * 10) / 10,
+                avg_deaths = math.floor(rf_d / recent_n * 10) / 10,
+                avg_assists = math.floor(rf_a / recent_n * 10) / 10,
+                avg_cs_min = math.floor(rf_cs / recent_n * 10) / 10,
+                avg_damage = math.floor(rf_dmg / recent_n),
+            }
+        end
+    end
+
+    -- ── Build Recommendations (#20) ───────────────────────
+    local build_recs = {}
+    if stats and stats.top_champions and #matches > 0 then
+        -- For each top champion, find best item combination by WR
+        local champ_item_combos = {}
+        for _, m in ipairs(matches) do
+            local cn = m.champion_name or "Unknown"
+            if not champ_item_combos[cn] then champ_item_combos[cn] = {} end
+            if m.items then
+                -- Sort items to create consistent key (skip boots/trinkets: items < 2000 or wards)
+                local core_items = {}
+                for _, item_id in ipairs(m.items) do
+                    if item_id and item_id >= 3000 then
+                        table.insert(core_items, item_id)
+                    end
+                end
+                table.sort(core_items)
+                if #core_items >= 2 then
+                    -- Use first 3 core items as "build path"
+                    local key = ""
+                    for ci = 1, math.min(#core_items, 3) do
+                        if ci > 1 then key = key .. "," end
+                        key = key .. tostring(core_items[ci])
+                    end
+                    if not champ_item_combos[cn][key] then
+                        champ_item_combos[cn][key] = {items = {}, games = 0, wins = 0}
+                        for ci = 1, math.min(#core_items, 3) do
+                            table.insert(champ_item_combos[cn][key].items, core_items[ci])
+                        end
+                    end
+                    champ_item_combos[cn][key].games = champ_item_combos[cn][key].games + 1
+                    if m.win then champ_item_combos[cn][key].wins = champ_item_combos[cn][key].wins + 1 end
+                end
+            end
+        end
+        -- Pick best build per champion (by WR, min 2 games)
+        for cn, combos in pairs(champ_item_combos) do
+            local best_key, best_wr, best_combo = nil, -1, nil
+            for k, combo in pairs(combos) do
+                if combo.games >= 2 then
+                    local wr = combo.wins / combo.games
+                    if wr > best_wr or (wr == best_wr and combo.games > (best_combo and best_combo.games or 0)) then
+                        best_key = k
+                        best_wr = wr
+                        best_combo = combo
+                    end
+                end
+            end
+            if best_combo then
+                table.insert(build_recs, {
+                    champion_name = cn,
+                    items = best_combo.items,
+                    games = best_combo.games,
+                    wins = best_combo.wins,
+                    winrate = math.floor(best_combo.wins / best_combo.games * 100),
+                })
+            end
+        end
+        table.sort(build_recs, function(a, b) return a.games > b.games end)
+    end
+
+    -- ── Patch Impact Tracker (#25) ──────────────────────
+    local patch_impact = {}
+    if #matches > 0 then
+        -- Group matches by patch version (extracted from match_id prefix or game_creation date)
+        -- Riot match IDs have format: REGION_MATCHNUM, game_creation gives us rough patch dates
+        -- We'll use game_creation month as a proxy for patch grouping
+        local patch_groups = {}
+        for _, m in ipairs(matches) do
+            local cn = m.champion_name or "Unknown"
+            local gc = m.game_creation or 0
+            -- Group by week for recent data
+            local week_key = ""
+            if gc > 0 then
+                week_key = tostring(math.floor(gc / (7 * 24 * 3600 * 1000)))
+            else
+                week_key = "unknown"
+            end
+
+            if not patch_groups[cn] then patch_groups[cn] = {} end
+            if not patch_groups[cn][week_key] then
+                patch_groups[cn][week_key] = {games = 0, wins = 0, timestamp = gc}
+            end
+            patch_groups[cn][week_key].games = patch_groups[cn][week_key].games + 1
+            if m.win then patch_groups[cn][week_key].wins = patch_groups[cn][week_key].wins + 1 end
+        end
+
+        -- Find champions with WR changes over time
+        for cn, weeks in pairs(patch_groups) do
+            local sorted_weeks = {}
+            for wk, data in pairs(weeks) do
+                table.insert(sorted_weeks, {week = wk, games = data.games, wins = data.wins, ts = data.timestamp})
+            end
+            table.sort(sorted_weeks, function(a, b) return a.ts < b.ts end)
+
+            if #sorted_weeks >= 2 then
+                local old_total, old_wins = 0, 0
+                local new_total, new_wins = 0, 0
+                local mid = math.floor(#sorted_weeks / 2)
+                for i = 1, mid do
+                    old_total = old_total + sorted_weeks[i].games
+                    old_wins = old_wins + sorted_weeks[i].wins
+                end
+                for i = mid + 1, #sorted_weeks do
+                    new_total = new_total + sorted_weeks[i].games
+                    new_wins = new_wins + sorted_weeks[i].wins
+                end
+                if old_total >= 2 and new_total >= 2 then
+                    local old_wr = math.floor(old_wins / old_total * 100)
+                    local new_wr = math.floor(new_wins / new_total * 100)
+                    local diff = new_wr - old_wr
+                    if math.abs(diff) >= 10 then
+                        table.insert(patch_impact, {
+                            champion_name = cn,
+                            old_wr = old_wr,
+                            new_wr = new_wr,
+                            diff = diff,
+                            old_games = old_total,
+                            new_games = new_total,
+                        })
+                    end
+                end
+            end
+        end
+        table.sort(patch_impact, function(a, b) return math.abs(a.diff) > math.abs(b.diff) end)
+    end
+
+    -- ── Champion Recommendations (#29) ──────────────────
+    local champion_recs = {}
+    if stats and stats.top_champions and #stats.top_champions > 0 then
+        -- Analyze which champions the player faces and loses to most
+        -- Recommend similar champions to their pool they don't play
+        local played_champs = {}
+        for _, c in ipairs(stats.top_champions) do
+            played_champs[c.champion_name] = true
+        end
+
+        -- Find champions that allies play well with this player
+        -- and champions the player hasn't tried from synergy data
+        if stats.ally_synergy then
+            for _, sy in ipairs(stats.ally_synergy) do
+                if sy.winrate >= 60 and sy.games >= 3 and not played_champs[sy.champion_name] then
+                    table.insert(champion_recs, {
+                        champion_name = sy.champion_name,
+                        champion_image = sy.champion_image,
+                        reason = "High synergy (" .. sy.winrate .. "% WR in " .. sy.games .. " games)",
+                        score = sy.winrate * sy.games,
+                    })
+                end
+            end
+        end
+
+        -- Champions the player loses to often — learn to play them
+        if stats.enemy_matchups then
+            for _, mu in ipairs(stats.enemy_matchups) do
+                if mu.winrate <= 35 and mu.games >= 3 and not played_champs[mu.champion_name] then
+                    table.insert(champion_recs, {
+                        champion_name = mu.champion_name,
+                        champion_image = mu.champion_image,
+                        reason = "Counter pick (only " .. mu.winrate .. "% WR against in " .. mu.games .. " games)",
+                        score = (100 - mu.winrate) * mu.games,
+                    })
+                end
+            end
+        end
+
+        table.sort(champion_recs, function(a, b) return a.score > b.score end)
+        -- Top 5 recommendations
+        local top_recs = {}
+        for i = 1, math.min(#champion_recs, 5) do
+            table.insert(top_recs, champion_recs[i])
+        end
+        champion_recs = top_recs
+    end
+
+    -- ── Favorites / Notes / Goals ───────────────────────
+    local is_fav = false
+    local match_notes = {}
+    local goals = {}
+    if not serr and storage then
+        local fav_result = storage:is_favorite({puuid = puuid})
+        if fav_result and fav_result.is_favorite then is_fav = true end
+        local notes_result = storage:get_match_notes({puuid = puuid})
+        if notes_result and notes_result.notes then match_notes = notes_result.notes end
+        local goals_result = storage:get_goals({puuid = puuid})
+        if goals_result and goals_result.goals then goals = goals_result.goals end
+    end
+
+    -- ── Rank Percentile Estimation (#21) ────────────────
+    local rank_percentile = nil
+    if ranked then
+        -- Approximate rank percentiles based on Riot's published distribution
+        local RANK_PERCENTILES = {
+            IRON = {IV = 97, III = 95, II = 93, I = 91},
+            BRONZE = {IV = 88, III = 85, II = 82, I = 78},
+            SILVER = {IV = 73, III = 68, II = 62, I = 56},
+            GOLD = {IV = 50, III = 44, II = 38, I = 33},
+            PLATINUM = {IV = 28, III = 23, II = 19, I = 15},
+            EMERALD = {IV = 12, III = 9, II = 7, I = 5},
+            DIAMOND = {IV = 3.5, III = 2.5, II = 1.5, I = 0.8},
+            MASTER = {I = 0.3},
+            GRANDMASTER = {I = 0.05},
+            CHALLENGER = {I = 0.01},
+        }
+        for _, r in ipairs(ranked) do
+            if r.queueType == "RANKED_SOLO_5x5" and r.tier then
+                local tier_data = RANK_PERCENTILES[r.tier]
+                if tier_data then
+                    local div = r.rank or "IV"
+                    rank_percentile = tier_data[div] or tier_data["I"] or 50
+                end
+            end
+        end
     end
 
     -- ── Enrich ranked with extra fields ─────────────────────
@@ -925,6 +1561,16 @@ local function handler()
         dd_version = dd_version,
         items_data = items_map,
         runes_data = runes_map,
+        -- Level 4 & 5 additions
+        is_favorite = is_fav,
+        match_notes = match_notes,
+        goals = goals,
+        build_recommendations = build_recs,
+        patch_impact = patch_impact,
+        champion_recommendations = champion_recs,
+        rank_percentile = rank_percentile,
+        platform = platform,
+        region = region,
     })
 end
 

@@ -343,6 +343,99 @@ entries:
     path: /api/match/{matchId}/timeline
     func: app.lc:api_match_timeline
 
+  # ── Favorites API (#18) ─────────────────────────────
+  - name: api_favorites
+    kind: function.lua
+    source: file://dashboard/handlers/api_favorites.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_favorites_get_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/favorites
+    func: app.lc:api_favorites
+
+  - name: api_favorites_post_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: POST
+    path: /api/favorites
+    func: app.lc:api_favorites
+
+  - name: api_favorites_delete_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: DELETE
+    path: /api/favorites
+    func: app.lc:api_favorites
+
+  # ── Match Notes API (#27) ──────────────────────────
+  - name: api_match_notes
+    kind: function.lua
+    source: file://dashboard/handlers/api_match_notes.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_match_notes_get_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/match-notes
+    func: app.lc:api_match_notes
+
+  - name: api_match_notes_post_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: POST
+    path: /api/match-notes
+    func: app.lc:api_match_notes
+
+  # ── Goals API (#26) ────────────────────────────────
+  - name: api_goals
+    kind: function.lua
+    source: file://dashboard/handlers/api_goals.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_goals_get_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/goals
+    func: app.lc:api_goals
+
+  - name: api_goals_post_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: POST
+    path: /api/goals
+    func: app.lc:api_goals
+
+  - name: api_goals_put_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: PUT
+    path: /api/goals
+    func: app.lc:api_goals
+
+  - name: api_goals_delete_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: DELETE
+    path: /api/goals
+    func: app.lc:api_goals
+
   # ── Templates ────────────────────────────────────────
   - name: templates
     kind: template.set

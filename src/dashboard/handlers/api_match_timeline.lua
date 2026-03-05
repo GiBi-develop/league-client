@@ -52,7 +52,31 @@ local function handler()
         end
     end
 
+    -- Extract gold data per frame for gold difference graph
+    local gold_frames = {}
+
     for _, frame in ipairs(timeline.info.frames) do
+        -- Gold per participant from participantFrames
+        if frame.participantFrames then
+            local blue_gold = 0
+            local red_gold = 0
+            for pid_str, pf in pairs(frame.participantFrames) do
+                local pid = tonumber(pid_str)
+                if pid and pf.totalGold then
+                    if pid <= 5 then
+                        blue_gold = blue_gold + pf.totalGold
+                    else
+                        red_gold = red_gold + pf.totalGold
+                    end
+                end
+            end
+            table.insert(gold_frames, {
+                timestamp = frame.timestamp,
+                blue_gold = blue_gold,
+                red_gold = red_gold,
+            })
+        end
+
         if frame.events then
             for _, evt in ipairs(frame.events) do
                 local kind = evt.type
@@ -98,6 +122,7 @@ local function handler()
         events = events,
         participants = participant_map,
         frame_interval = timeline.info.frameInterval,
+        gold_frames = gold_frames,
     })
 end
 

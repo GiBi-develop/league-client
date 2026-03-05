@@ -60,6 +60,26 @@ entries:
         description: Save DDragon cache entry
       - name: get_ddragon_cache
         description: Get DDragon cache entry with TTL
+      - name: save_favorite
+        description: Save a player as favorite
+      - name: remove_favorite
+        description: Remove a player from favorites
+      - name: get_favorites
+        description: Get all favorite players with ranked data
+      - name: is_favorite
+        description: Check if a player is favorited
+      - name: save_match_note
+        description: Save a note for a match
+      - name: get_match_notes
+        description: Get all match notes for a player
+      - name: save_goal
+        description: Save a player goal
+      - name: get_goals
+        description: Get goals for a player
+      - name: complete_goal
+        description: Mark a goal as completed
+      - name: delete_goal
+        description: Delete a goal
 
   - name: players_init_schema
     kind: function.lua
@@ -199,6 +219,66 @@ entries:
     method: get_ddragon_cache
     modules: [sql]
 
+  - name: players_save_favorite
+    kind: function.lua
+    source: file://players.lua
+    method: save_favorite
+    modules: [sql]
+
+  - name: players_remove_favorite
+    kind: function.lua
+    source: file://players.lua
+    method: remove_favorite
+    modules: [sql]
+
+  - name: players_get_favorites
+    kind: function.lua
+    source: file://players.lua
+    method: get_favorites
+    modules: [sql]
+
+  - name: players_is_favorite
+    kind: function.lua
+    source: file://players.lua
+    method: is_favorite
+    modules: [sql]
+
+  - name: players_save_match_note
+    kind: function.lua
+    source: file://players.lua
+    method: save_match_note
+    modules: [sql]
+
+  - name: players_get_match_notes
+    kind: function.lua
+    source: file://players.lua
+    method: get_match_notes
+    modules: [sql]
+
+  - name: players_save_goal
+    kind: function.lua
+    source: file://players.lua
+    method: save_goal
+    modules: [sql]
+
+  - name: players_get_goals
+    kind: function.lua
+    source: file://players.lua
+    method: get_goals
+    modules: [sql]
+
+  - name: players_complete_goal
+    kind: function.lua
+    source: file://players.lua
+    method: complete_goal
+    modules: [sql]
+
+  - name: players_delete_goal
+    kind: function.lua
+    source: file://players.lua
+    method: delete_goal
+    modules: [sql]
+
   - name: player_storage
     kind: contract.binding
     contracts:
@@ -228,3 +308,13 @@ entries:
           get_winrate_history: app.lc.lib:players_get_winrate_history
           save_ddragon_cache: app.lc.lib:players_save_ddragon_cache
           get_ddragon_cache: app.lc.lib:players_get_ddragon_cache
+          save_favorite: app.lc.lib:players_save_favorite
+          remove_favorite: app.lc.lib:players_remove_favorite
+          get_favorites: app.lc.lib:players_get_favorites
+          is_favorite: app.lc.lib:players_is_favorite
+          save_match_note: app.lc.lib:players_save_match_note
+          get_match_notes: app.lc.lib:players_get_match_notes
+          save_goal: app.lc.lib:players_save_goal
+          get_goals: app.lc.lib:players_get_goals
+          complete_goal: app.lc.lib:players_complete_goal
+          delete_goal: app.lc.lib:players_delete_goal

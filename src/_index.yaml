@@ -198,7 +198,7 @@ entries:
   # ── HTTP Infrastructure ──────────────────────────────
   - name: gateway
     kind: http.service
-    addr: ":8080"
+    addr: ":80"
     lifecycle:
       auto_start: true
 

@@ -2,7 +2,7 @@
 local function handler(context)
     return {
         title = "League Client Dashboard",
-        ws_url = "ws://localhost:8080/ws/updates",
+        ws_url = "ws://localhost:80/ws/updates",
     }
 end
 

@@ -3,6 +3,63 @@ local events = require("events")
 local contract = require("contract")
 local time = require("time")
 
+--- Tier weight for rank goal comparison (higher = better rank).
+local function tier_weight(tier)
+    if not tier then return 0 end
+    local t = string.upper(tier)
+    if t == "IRON" then return 0
+    elseif t == "BRONZE" then return 4
+    elseif t == "SILVER" then return 8
+    elseif t == "GOLD" then return 12
+    elseif t == "PLATINUM" then return 16
+    elseif t == "EMERALD" then return 20
+    elseif t == "DIAMOND" then return 24
+    elseif t == "MASTER" then return 28
+    elseif t == "GRANDMASTER" then return 29
+    elseif t == "CHALLENGER" then return 30
+    end
+    return 0
+end
+
+--- Rank division weight (I=3, II=2, III=1, IV=0).
+local function rank_weight(rank)
+    if rank == "I" then return 3
+    elseif rank == "II" then return 2
+    elseif rank == "III" then return 1
+    end
+    return 0
+end
+
+--- Convert tier+rank+lp to absolute LP value for comparison.
+local function lp_absolute(tier, rank, lp)
+    return tier_weight(tier) * 100 + rank_weight(rank) * 100 + (lp or 0)
+end
+
+--- Parse a rank target string like "Gold I", "PLATINUM", "Diamond IV".
+--- Returns tier (uppercase), rank (uppercase or nil).
+local function parse_rank_target(target)
+    local upper = string.upper(target or "")
+    local tiers = {"CHALLENGER","GRANDMASTER","MASTER","DIAMOND","EMERALD","PLATINUM","GOLD","SILVER","BRONZE","IRON"}
+    local found_tier = nil
+    for _, t in ipairs(tiers) do
+        if string.find(upper, t, 1, true) then
+            found_tier = t
+            break
+        end
+    end
+    if not found_tier then return nil, nil end
+    if string.find(upper, " I", 1, true) and not string.find(upper, " II", 1, true) and not string.find(upper, " III", 1, true) and not string.find(upper, " IV", 1, true) then
+        return found_tier, "I"
+    elseif string.find(upper, "IV", 1, true) then
+        return found_tier, "IV"
+    elseif string.find(upper, "III", 1, true) then
+        return found_tier, "III"
+    elseif string.find(upper, "II", 1, true) then
+        return found_tier, "II"
+    end
+    return found_tier, nil
+end
+
 --- Opens the player storage contract.
 local function open_storage()
     local svc, err = contract.open("app.lc.lib:player_storage")
@@ -124,6 +181,7 @@ local function handle_data_fetched(storage, data)
             revision_date = data.summoner.revisionDate,
             platform = data.platform,
             region = data.region,
+            total_mastery_score = data.mastery_score,
         })
         if err then
             logger:error("Failed to save player", {puuid = puuid, error = tostring(err)})
@@ -213,6 +271,48 @@ local function handle_data_fetched(storage, data)
                     losses = entry.losses,
                     discord_notify = data.discord_notify or false,
                 })
+            end
+        end
+    end
+
+    -- Check rank goals for completion
+    if data.ranked then
+        local goals_result = storage:get_goals({puuid = puuid})
+        local goals = goals_result and goals_result.goals or {}
+        for _, goal in ipairs(goals) do
+            if goal.completed == 0 and goal.goal_type == "rank" then
+                local target_tier, target_rank = parse_rank_target(goal.target_value)
+                if target_tier then
+                    local target_abs = lp_absolute(target_tier, target_rank or "I", 0)
+                    for _, entry in ipairs(data.ranked) do
+                        local curr_abs = lp_absolute(entry.tier, entry.rank, tonumber(entry.leaguePoints) or 0)
+                        if curr_abs >= target_abs then
+                            storage:complete_goal({id = goal.id})
+                            local queue_name = entry.queueType == "RANKED_SOLO_5x5" and "Solo/Duo"
+                                or entry.queueType == "RANKED_FLEX_SR" and "Flex"
+                                or entry.queueType or "Ranked"
+                            logger:info("GOAL ACHIEVED", {
+                                player = data.player_name,
+                                goal = goal.target_value,
+                                queue = queue_name,
+                                current = entry.tier .. " " .. entry.rank,
+                            })
+                            events.send("league_client", "player.goal_achieved", "/players/" .. data.player_id, {
+                                player_id = data.player_id,
+                                player_name = data.player_name,
+                                puuid = puuid,
+                                goal_type = goal.goal_type,
+                                target_value = goal.target_value,
+                                queue_type = entry.queueType,
+                                current_tier = entry.tier,
+                                current_rank = entry.rank,
+                                current_lp = entry.leaguePoints,
+                                discord_notify = data.discord_notify or false,
+                            })
+                            break
+                        end
+                    end
+                end
             end
         end
     end
@@ -323,11 +423,10 @@ local function handle_data_fetched(storage, data)
                     local duration_sec = game_duration % 60
 
                     -- Map queue_id to queue_type for LP diff lookup
-                    local queue_type_map = {
-                        [420] = "RANKED_SOLO_5x5",
-                        [440] = "RANKED_FLEX_SR",
-                    }
-                    local queue_type = queue_type_map[info.queueId]
+                    local queue_type = nil
+                    if info.queueId == 420 then queue_type = "RANKED_SOLO_5x5"
+                    elseif info.queueId == 440 then queue_type = "RANKED_FLEX_SR"
+                    end
                     local lp_info = queue_type and lp_diffs[queue_type] or nil
 
                     events.send("league_client", "player.match_new", "/players/" .. data.player_id, {
@@ -403,6 +502,18 @@ local function main()
             local evt = r.value
             if evt.kind == "player.data_fetched" then
                 handle_data_fetched(storage, evt.data)
+                -- When full fetch completes, player is no longer in game
+                if evt.data.puuid then
+                    storage:set_player_ingame({puuid = evt.data.puuid, in_game = false, game_id = nil})
+                end
+            elseif evt.kind == "player.game_started" then
+                if evt.data.puuid then
+                    storage:set_player_ingame({
+                        puuid = evt.data.puuid,
+                        in_game = true,
+                        game_id = tostring(evt.data.game_id or ""),
+                    })
+                end
             end
         end
     end

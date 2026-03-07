@@ -220,6 +220,78 @@ local function get_match_timeline(meta)
     return api_request(url)
 end
 
+--- Get Clash tournaments (upcoming/active).
+--- Input: {platform? = "EUW1"}
+local function get_clash_tournaments(meta)
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/clash/v1/tournaments"
+
+    return api_request(url)
+end
+
+--- Get Clash team by summoner PUUID.
+--- Input: {puuid = "...", platform? = "EUW1"}
+local function get_clash_players(meta)
+    if not meta or not meta.puuid then
+        return nil, "puuid is required"
+    end
+
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/clash/v1/players/by-puuid/" .. meta.puuid
+
+    return api_request(url)
+end
+
+--- Get Challenger league entries.
+--- Input: {queue? = "RANKED_SOLO_5x5", platform? = "EUW1"}
+local function get_challenger_league(meta)
+    local platform = get_platform(meta)
+    local queue = (meta and meta.queue) or "RANKED_SOLO_5x5"
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/league/v4/challengerleagues/by-queue/" .. queue
+
+    return api_request(url)
+end
+
+--- Get Grandmaster league entries.
+--- Input: {queue? = "RANKED_SOLO_5x5", platform? = "EUW1"}
+local function get_grandmaster_league(meta)
+    local platform = get_platform(meta)
+    local queue = (meta and meta.queue) or "RANKED_SOLO_5x5"
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/league/v4/grandmasterleagues/by-queue/" .. queue
+
+    return api_request(url)
+end
+
+--- Get Master league entries.
+--- Input: {queue? = "RANKED_SOLO_5x5", platform? = "EUW1"}
+local function get_master_league(meta)
+    local platform = get_platform(meta)
+    local queue = (meta and meta.queue) or "RANKED_SOLO_5x5"
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/league/v4/masterleagues/by-queue/" .. queue
+
+    return api_request(url)
+end
+
+--- Get total mastery score by PUUID.
+--- Input: {puuid = "...", platform? = "EUW1"}
+--- Returns: number (total mastery score)
+local function get_mastery_score(meta)
+    if not meta or not meta.puuid then
+        return nil, "puuid is required"
+    end
+
+    local platform = get_platform(meta)
+    local url = "https://" .. string.lower(platform) .. ".api.riotgames.com"
+        .. "/lol/champion-mastery/v4/scores/by-puuid/" .. meta.puuid
+
+    return api_request(url)
+end
+
 return {
     get_account = get_account,
     get_summoner = get_summoner,
@@ -232,4 +304,10 @@ return {
     get_champion_rotations = get_champion_rotations,
     get_status = get_status,
     get_match_timeline = get_match_timeline,
+    get_mastery_score = get_mastery_score,
+    get_clash_tournaments = get_clash_tournaments,
+    get_clash_players = get_clash_players,
+    get_challenger_league = get_challenger_league,
+    get_grandmaster_league = get_grandmaster_league,
+    get_master_league = get_master_league,
 }

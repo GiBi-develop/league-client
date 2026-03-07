@@ -842,6 +842,15 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   .match-filters { flex-direction: column; }
   .match-filter-select { width: 100%; }
   .rune-icons { display: none; }
+  /* Match rows as cards on very small screens (#19) */
+  .matches-table thead { display: none; }
+  .matches-table tr { display: flex; flex-direction: column; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .matches-table td { display: flex; justify-content: space-between; padding: 2px 0; border: none; }
+  .matches-table td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); margin-right: 8px; }
+  .profile-card { padding: 12px; }
+  .so-grid { grid-template-columns: 1fr; }
+  .section-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .section-tab { white-space: nowrap; }
 }
 </style>
 {{end}}
@@ -3001,6 +3010,28 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   document.getElementById('export-btn').addEventListener('click', exportProfile);
   // Notifications
   document.getElementById('notif-toggle').addEventListener('click', toggleNotifications);
+
+  // Keyboard shortcuts (#7): / to focus search, Escape to clear, r to refresh, f to favorite
+  document.addEventListener('keydown', function(e) {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    var isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (e.key === '/' && !isInput) {
+      e.preventDefault();
+      var si = document.getElementById('search-input');
+      if (si) { si.focus(); si.select(); }
+    } else if (e.key === 'Escape' && isInput) {
+      var si2 = document.getElementById('search-input');
+      if (document.activeElement === si2) { si2.value = ''; si2.blur(); }
+      else { document.activeElement.blur(); }
+    } else if (e.key === 'r' && !isInput && currentPuuid) {
+      e.preventDefault();
+      doSearch();
+    } else if (e.key === 'f' && !isInput && currentPuuid) {
+      e.preventDefault();
+      var fb = document.getElementById('fav-btn');
+      if (fb) fb.click();
+    }
+  });
 
   // Live game auto-refresh
   var liveGameInterval=null;

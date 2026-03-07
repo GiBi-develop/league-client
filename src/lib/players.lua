@@ -135,6 +135,12 @@ local function init_schema()
         )
     ]])
 
+    -- Add total mastery score column to players
+    pcall(function() db:execute("ALTER TABLE players ADD COLUMN total_mastery_score INTEGER DEFAULT 0") end)
+    -- Add in_game status column to players
+    pcall(function() db:execute("ALTER TABLE players ADD COLUMN in_game INTEGER DEFAULT 0") end)
+    pcall(function() db:execute("ALTER TABLE players ADD COLUMN current_game_id TEXT") end)
+
     -- Add new columns to matches (ignore errors if already exist)
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN summoner1 INTEGER DEFAULT 0") end)
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN summoner2 INTEGER DEFAULT 0") end)
@@ -328,8 +334,8 @@ local function save_player(input)
     if err then return {error = tostring(err)} end
 
     local _, exec_err = db:execute([[
-        INSERT INTO players (puuid, game_name, tag_line, summoner_id, summoner_level, profile_icon_id, revision_date, platform, region, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO players (puuid, game_name, tag_line, summoner_id, summoner_level, profile_icon_id, revision_date, platform, region, total_mastery_score, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(puuid) DO UPDATE SET
             game_name = excluded.game_name,
             tag_line = excluded.tag_line,
@@ -339,6 +345,7 @@ local function save_player(input)
             revision_date = excluded.revision_date,
             platform = excluded.platform,
             region = excluded.region,
+            total_mastery_score = COALESCE(excluded.total_mastery_score, total_mastery_score),
             updated_at = datetime('now')
     ]], {
         input.puuid,
@@ -350,6 +357,7 @@ local function save_player(input)
         input.revision_date,
         input.platform or "EUW1",
         input.region or "EUROPE",
+        input.total_mastery_score,
     })
     db:release()
 
@@ -1163,6 +1171,378 @@ local function get_match_notes(input)
     return {notes = map}
 end
 
+--- List managed players (#18).
+local function list_managed_players()
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows = db:query("SELECT * FROM managed_players ORDER BY created_at DESC")
+    db:release()
+    return rows or {}
+end
+
+--- Add a managed player (#18).
+local function add_managed_player(input)
+    if not input or not input.game_name or not input.tag_line then
+        return {error = "game_name and tag_line are required"}
+    end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        INSERT INTO managed_players
+            (game_name, tag_line, platform, region, fetch_interval, ranked_interval,
+             discord_notify, discord_webhook_url, active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ON CONFLICT(game_name, tag_line) DO UPDATE SET
+            platform = excluded.platform,
+            region = excluded.region,
+            fetch_interval = excluded.fetch_interval,
+            ranked_interval = excluded.ranked_interval,
+            discord_notify = excluded.discord_notify,
+            discord_webhook_url = excluded.discord_webhook_url,
+            active = 1
+        RETURNING id
+    ]], {
+        input.game_name,
+        input.tag_line,
+        input.platform or "EUW1",
+        input.region or "EUROPE",
+        input.fetch_interval or "10m",
+        input.ranked_interval or "2m",
+        (input.discord_notify and 1 or 0),
+        input.discord_webhook_url or "",
+    })
+
+    db:release()
+    if qerr then return {error = tostring(qerr)} end
+    local id = rows and rows[1] and rows[1].id or nil
+    return {ok = true, id = id}
+end
+
+--- Remove a managed player (#18).
+local function remove_managed_player(input)
+    if not input or not input.id then return {error = "id is required"} end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute("UPDATE managed_players SET active = 0 WHERE id = ?", {input.id})
+    db:release()
+    return {ok = true}
+end
+
+--- Get notification preferences (#13).
+local function get_notification_prefs(input)
+    if not input or not input.puuid then return nil end
+    local db, err = sql.get(DB_ID)
+    if err then return nil end
+
+    local rows = db:query([[
+        SELECT * FROM notification_prefs WHERE puuid = ?
+    ]], {input.puuid})
+
+    db:release()
+    if not rows or #rows == 0 then
+        -- Return defaults
+        return {
+            puuid = input.puuid,
+            notify_rank_change = 1,
+            notify_match_end = 1,
+            notify_game_start = 1,
+            notify_goal = 1,
+            notify_weekly_digest = 1,
+        }
+    end
+    return rows[1]
+end
+
+--- Save notification preferences (#13).
+local function save_notification_prefs(input)
+    if not input or not input.puuid then return {error = "puuid is required"} end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local function bool_to_int(v) return (v == true or v == 1) and 1 or 0 end
+
+    db:execute([[
+        INSERT INTO notification_prefs
+            (puuid, notify_rank_change, notify_match_end, notify_game_start, notify_goal, notify_weekly_digest, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(puuid) DO UPDATE SET
+            notify_rank_change = excluded.notify_rank_change,
+            notify_match_end = excluded.notify_match_end,
+            notify_game_start = excluded.notify_game_start,
+            notify_goal = excluded.notify_goal,
+            notify_weekly_digest = excluded.notify_weekly_digest,
+            updated_at = datetime('now')
+    ]], {
+        input.puuid,
+        bool_to_int(input.notify_rank_change),
+        bool_to_int(input.notify_match_end),
+        bool_to_int(input.notify_game_start),
+        bool_to_int(input.notify_goal),
+        bool_to_int(input.notify_weekly_digest),
+    })
+
+    db:release()
+    return {ok = true}
+end
+
+--- Enqueue a failed notification for retry (#11).
+local function enqueue_notification(input)
+    if not input or not input.webhook_url or not input.payload then return {error = "missing fields"} end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute([[
+        INSERT INTO notification_queue (webhook_url, payload, attempts, next_attempt_at)
+        VALUES (?, ?, 0, datetime('now', '+30 seconds'))
+    ]], {input.webhook_url, input.payload})
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get pending notifications due for retry.
+local function get_pending_notifications(input)
+    local limit = (input and input.limit) or 10
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows = db:query([[
+        SELECT id, webhook_url, payload, attempts
+        FROM notification_queue
+        WHERE next_attempt_at <= datetime('now')
+        ORDER BY next_attempt_at ASC
+        LIMIT ?
+    ]], {limit})
+
+    db:release()
+    return rows or {}
+end
+
+--- Mark a notification as delivered (delete) or schedule next retry.
+local function update_notification_attempt(input)
+    if not input or not input.id then return {error = "id is required"} end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local attempts = input.attempts or 1
+    if input.success or attempts >= 5 then
+        db:execute("DELETE FROM notification_queue WHERE id = ?", {input.id})
+    else
+        -- Exponential backoff in seconds: 120, 600, 1800, 3600, 7200
+        local delay_secs = 120
+        if attempts == 2 then delay_secs = 600
+        elseif attempts == 3 then delay_secs = 1800
+        elseif attempts == 4 then delay_secs = 3600
+        end
+        local next_attempt = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time() + delay_secs)
+        db:execute([[
+            UPDATE notification_queue SET attempts = ?, next_attempt_at = ?
+            WHERE id = ?
+        ]], {attempts, next_attempt, input.id})
+    end
+
+    db:release()
+    return {ok = true}
+end
+
+--- Set player in-game status.
+local function set_player_ingame(input)
+    if not input or not input.puuid then return {error = "puuid is required"} end
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local in_game = input.in_game and 1 or 0
+    db:execute([[
+        UPDATE players SET in_game = ?, current_game_id = ?, updated_at = datetime('now')
+        WHERE puuid = ?
+    ]], {in_game, input.game_id, input.puuid})
+
+    -- Managed tracked players (#18) — dynamically added/removed via admin API
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS managed_players (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_name TEXT NOT NULL,
+            tag_line TEXT NOT NULL,
+            platform TEXT DEFAULT 'EUW1',
+            region TEXT DEFAULT 'EUROPE',
+            fetch_interval TEXT DEFAULT '10m',
+            ranked_interval TEXT DEFAULT '2m',
+            discord_notify INTEGER DEFAULT 0,
+            discord_webhook_url TEXT DEFAULT '',
+            active INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(game_name, tag_line)
+        )
+    ]])
+
+    -- Notification preferences (#13)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS notification_prefs (
+            puuid TEXT PRIMARY KEY,
+            notify_rank_change INTEGER DEFAULT 1,
+            notify_match_end INTEGER DEFAULT 1,
+            notify_game_start INTEGER DEFAULT 1,
+            notify_goal INTEGER DEFAULT 1,
+            notify_weekly_digest INTEGER DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    -- Notification retry queue (#11)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS notification_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            webhook_url TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            attempts INTEGER DEFAULT 0,
+            next_attempt_at TEXT NOT NULL DEFAULT (datetime('now')),
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get today's match stats for a player.
+local function get_today_stats(input)
+    if not input or not input.puuid then
+        return {games = 0, wins = 0, losses = 0, top_champion = nil}
+    end
+    local db, err = sql.get(DB_ID)
+    if err then return {games = 0, wins = 0, losses = 0, top_champion = nil} end
+
+    local rows = db:query([[
+        SELECT champion_name, win, kills, deaths, assists
+        FROM matches
+        WHERE puuid = ?
+          AND date(game_creation / 1000, 'unixepoch') = date('now')
+    ]], {input.puuid})
+
+    db:release()
+
+    local games = 0
+    local wins = 0
+    local champs = {}
+    local total_kills = 0
+    local total_deaths = 0
+    local total_assists = 0
+
+    if rows then
+        for _, r in ipairs(rows) do
+            games = games + 1
+            if (r.win or 0) == 1 then wins = wins + 1 end
+            local c = r.champion_name or "Unknown"
+            champs[c] = (champs[c] or 0) + 1
+            total_kills = total_kills + (r.kills or 0)
+            total_deaths = total_deaths + (r.deaths or 0)
+            total_assists = total_assists + (r.assists or 0)
+        end
+    end
+
+    local top_champion = nil
+    local top_count = 0
+    for c, n in pairs(champs) do
+        if n > top_count then
+            top_count = n
+            top_champion = c
+        end
+    end
+
+    return {
+        games = games,
+        wins = wins,
+        losses = games - wins,
+        top_champion = top_champion,
+        total_kills = total_kills,
+        total_deaths = total_deaths,
+        total_assists = total_assists,
+    }
+end
+
+--- Get peak LP (best-ever rank) per queue from ranked_history.
+local function get_peak_lp(input)
+    if not input or not input.puuid then return {} end
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows = db:query([[
+        SELECT queue_type, tier, rank, league_points
+        FROM ranked_history
+        WHERE puuid = ?
+    ]], {input.puuid})
+
+    db:release()
+
+    if not rows then return {} end
+
+    local function tw(t)
+        if t == "IRON" then return 0
+        elseif t == "BRONZE" then return 4
+        elseif t == "SILVER" then return 8
+        elseif t == "GOLD" then return 12
+        elseif t == "PLATINUM" then return 16
+        elseif t == "EMERALD" then return 20
+        elseif t == "DIAMOND" then return 24
+        else return 28 end
+    end
+    local function rw(r)
+        if r == "IV" then return 0
+        elseif r == "III" then return 1
+        elseif r == "II" then return 2
+        else return 3 end
+    end
+
+    local peaks = {}
+    for _, row in ipairs(rows) do
+        local score = tw(row.tier or "") * 100 + rw(row.rank or "") * 100 + (row.league_points or 0)
+        local qt = row.queue_type or "UNKNOWN"
+        if not peaks[qt] or score > peaks[qt].score then
+            peaks[qt] = {score = score, tier = row.tier, rank = row.rank, lp = row.league_points}
+        end
+    end
+
+    local result = {}
+    for qt, p in pairs(peaks) do
+        table.insert(result, {
+            queue_type = qt,
+            tier = p.tier,
+            rank = p.rank,
+            lp = p.lp,
+        })
+    end
+    return result
+end
+
+--- Get average stats from recent matches (for daily tip).
+local function get_recent_avg_stats(input)
+    if not input or not input.puuid then return nil end
+    local db, err = sql.get(DB_ID)
+    if err then return nil end
+
+    local limit = input.limit or 20
+    local rows = db:query([[
+        SELECT AVG(kills) as avg_k, AVG(deaths) as avg_d, AVG(assists) as avg_a,
+               AVG(cs_per_min) as avg_cs_min, AVG(vision_score) as avg_vision,
+               AVG(CASE WHEN win = 1 THEN 1.0 ELSE 0.0 END) * 100 as avg_wr
+        FROM (
+            SELECT kills, deaths, assists, cs_per_min, vision_score, win
+            FROM matches
+            WHERE puuid = ?
+            ORDER BY game_creation DESC
+            LIMIT ?
+        )
+    ]], {input.puuid, limit})
+
+    db:release()
+
+    if not rows or #rows == 0 then return nil end
+    return rows[1]
+end
+
 --- Goals (#26).
 local function save_goal(input)
     if not input or not input.puuid or not input.goal_type or not input.target_value then
@@ -1266,4 +1646,16 @@ return {
     get_goals = get_goals,
     complete_goal = complete_goal,
     delete_goal = delete_goal,
+    get_today_stats = get_today_stats,
+    get_peak_lp = get_peak_lp,
+    get_recent_avg_stats = get_recent_avg_stats,
+    set_player_ingame = set_player_ingame,
+    enqueue_notification = enqueue_notification,
+    get_pending_notifications = get_pending_notifications,
+    update_notification_attempt = update_notification_attempt,
+    get_notification_prefs = get_notification_prefs,
+    save_notification_prefs = save_notification_prefs,
+    list_managed_players = list_managed_players,
+    add_managed_player = add_managed_player,
+    remove_managed_player = remove_managed_player,
 }

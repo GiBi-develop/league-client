@@ -94,9 +94,9 @@ local function build_match_entry(mid, match_data, puuid, champions)
     end
     if not participant then return nil end
 
-    local info = match_data.info or {}
+    local info = match_data.info  -- keep as any, not {} fallback
     local cs = (participant.totalMinionsKilled or 0) + (participant.neutralMinionsKilled or 0)
-    local game_duration = info.gameDuration or 0
+    local game_duration = tonumber(info and info.gameDuration) or 0
     local cs_per_min = 0
     if game_duration > 0 then
         cs_per_min = math.floor(cs / (game_duration / 60) * 10) / 10
@@ -437,7 +437,11 @@ local function handler()
     local dd_data = cached_ddragon("champions", "app.lc:ddragon_get_champions", {})
     if dd_data then
         dd_version = dd_data.version or dd_version
-        champions = dd_data.champions or {}
+        if dd_data.champions then
+            for k, v in pairs(dd_data.champions) do
+                champions[k] = v
+            end
+        end
     end
 
     local dd_items = cached_ddragon("items", "app.lc:ddragon_get_items", {})
@@ -896,8 +900,8 @@ local function handler()
             if not spell_combos[combo_key] then
                 spell_combos[combo_key] = {s1 = s1, s2 = s2, games = 0, wins = 0}
             end
-            spell_combos[combo_key].games = spell_combos[combo_key].games + 1
-            if m.win then spell_combos[combo_key].wins = spell_combos[combo_key].wins + 1 end
+            spell_combos[combo_key].games = (spell_combos[combo_key].games or 0) + 1
+            if m.win then spell_combos[combo_key].wins = (spell_combos[combo_key].wins or 0) + 1 end
 
             -- Enemy matchup tracking
             if m.enemies then
@@ -906,8 +910,8 @@ local function handler()
                         if not enemy_matchups[e.champion_name] then
                             enemy_matchups[e.champion_name] = {games = 0, wins = 0, image = e.champion_image}
                         end
-                        enemy_matchups[e.champion_name].games = enemy_matchups[e.champion_name].games + 1
-                        if m.win then enemy_matchups[e.champion_name].wins = enemy_matchups[e.champion_name].wins + 1 end
+                        enemy_matchups[e.champion_name].games = (enemy_matchups[e.champion_name].games or 0) + 1
+                        if m.win then enemy_matchups[e.champion_name].wins = (enemy_matchups[e.champion_name].wins or 0) + 1 end
                     end
                 end
             end
@@ -964,12 +968,12 @@ local function handler()
                             lane_matchups[lk] = {games = 0, wins = 0, image = e.champion_image,
                                 my_kills = 0, my_deaths = 0, opp_kills = 0, opp_deaths = 0}
                         end
-                        lane_matchups[lk].games = lane_matchups[lk].games + 1
-                        if m.win then lane_matchups[lk].wins = lane_matchups[lk].wins + 1 end
-                        lane_matchups[lk].my_kills = lane_matchups[lk].my_kills + m.kills
-                        lane_matchups[lk].my_deaths = lane_matchups[lk].my_deaths + m.deaths
-                        lane_matchups[lk].opp_kills = lane_matchups[lk].opp_kills + (e.kills or 0)
-                        lane_matchups[lk].opp_deaths = lane_matchups[lk].opp_deaths + (e.deaths or 0)
+                        lane_matchups[lk].games = (lane_matchups[lk].games or 0) + 1
+                        if m.win then lane_matchups[lk].wins = (lane_matchups[lk].wins or 0) + 1 end
+                        lane_matchups[lk].my_kills = (lane_matchups[lk].my_kills or 0) + m.kills
+                        lane_matchups[lk].my_deaths = (lane_matchups[lk].my_deaths or 0) + m.deaths
+                        lane_matchups[lk].opp_kills = (lane_matchups[lk].opp_kills or 0) + (e.kills or 0)
+                        lane_matchups[lk].opp_deaths = (lane_matchups[lk].opp_deaths or 0) + (e.deaths or 0)
                     end
                 end
             end

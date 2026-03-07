@@ -80,6 +80,30 @@ entries:
         description: Mark a goal as completed
       - name: delete_goal
         description: Delete a goal
+      - name: set_player_ingame
+        description: Set player in-game status
+      - name: enqueue_notification
+        description: Enqueue a failed notification for retry
+      - name: get_pending_notifications
+        description: Get pending notifications due for retry
+      - name: update_notification_attempt
+        description: Mark notification delivered or schedule next retry
+      - name: list_managed_players
+        description: List dynamically managed tracked players
+      - name: add_managed_player
+        description: Add a managed tracked player
+      - name: remove_managed_player
+        description: Deactivate a managed tracked player
+      - name: get_notification_prefs
+        description: Get notification preferences for a player
+      - name: save_notification_prefs
+        description: Save notification preferences for a player
+      - name: get_today_stats
+        description: Get today's match stats for a player
+      - name: get_peak_lp
+        description: Get peak LP (best-ever rank) per queue
+      - name: get_recent_avg_stats
+        description: Get average stats from recent matches
 
   - name: players_init_schema
     kind: function.lua
@@ -279,6 +303,78 @@ entries:
     method: delete_goal
     modules: [sql]
 
+  - name: players_set_player_ingame
+    kind: function.lua
+    source: file://players.lua
+    method: set_player_ingame
+    modules: [sql]
+
+  - name: players_list_managed_players
+    kind: function.lua
+    source: file://players.lua
+    method: list_managed_players
+    modules: [sql]
+
+  - name: players_add_managed_player
+    kind: function.lua
+    source: file://players.lua
+    method: add_managed_player
+    modules: [sql]
+
+  - name: players_remove_managed_player
+    kind: function.lua
+    source: file://players.lua
+    method: remove_managed_player
+    modules: [sql]
+
+  - name: players_get_notification_prefs
+    kind: function.lua
+    source: file://players.lua
+    method: get_notification_prefs
+    modules: [sql]
+
+  - name: players_save_notification_prefs
+    kind: function.lua
+    source: file://players.lua
+    method: save_notification_prefs
+    modules: [sql]
+
+  - name: players_enqueue_notification
+    kind: function.lua
+    source: file://players.lua
+    method: enqueue_notification
+    modules: [sql]
+
+  - name: players_get_pending_notifications
+    kind: function.lua
+    source: file://players.lua
+    method: get_pending_notifications
+    modules: [sql]
+
+  - name: players_update_notification_attempt
+    kind: function.lua
+    source: file://players.lua
+    method: update_notification_attempt
+    modules: [sql]
+
+  - name: players_get_today_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_today_stats
+    modules: [sql]
+
+  - name: players_get_peak_lp
+    kind: function.lua
+    source: file://players.lua
+    method: get_peak_lp
+    modules: [sql]
+
+  - name: players_get_recent_avg_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_recent_avg_stats
+    modules: [sql]
+
   - name: player_storage
     kind: contract.binding
     contracts:
@@ -318,3 +414,15 @@ entries:
           get_goals: app.lc.lib:players_get_goals
           complete_goal: app.lc.lib:players_complete_goal
           delete_goal: app.lc.lib:players_delete_goal
+          set_player_ingame: app.lc.lib:players_set_player_ingame
+          enqueue_notification: app.lc.lib:players_enqueue_notification
+          get_pending_notifications: app.lc.lib:players_get_pending_notifications
+          update_notification_attempt: app.lc.lib:players_update_notification_attempt
+          list_managed_players: app.lc.lib:players_list_managed_players
+          add_managed_player: app.lc.lib:players_add_managed_player
+          remove_managed_player: app.lc.lib:players_remove_managed_player
+          get_notification_prefs: app.lc.lib:players_get_notification_prefs
+          save_notification_prefs: app.lc.lib:players_save_notification_prefs
+          get_today_stats: app.lc.lib:players_get_today_stats
+          get_peak_lp: app.lc.lib:players_get_peak_lp
+          get_recent_avg_stats: app.lc.lib:players_get_recent_avg_stats

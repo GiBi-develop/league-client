@@ -42,6 +42,16 @@ entries:
     variable: DISCORD_WEBHOOK_URL
     storage: app.lc:file_env
 
+  - name: telegram_bot_token
+    kind: env.variable
+    variable: TELEGRAM_BOT_TOKEN
+    storage: app.lc:file_env
+
+  - name: telegram_chat_id
+    kind: env.variable
+    variable: TELEGRAM_CHAT_ID
+    storage: app.lc:file_env
+
   # ── Riot API Functions ───────────────────────────────
   - name: riot_api_get_account
     kind: function.lua
@@ -107,6 +117,42 @@ entries:
     kind: function.lua
     source: file://api/riot_api.lua
     method: get_match_timeline
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_mastery_score
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_mastery_score
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_clash_tournaments
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_clash_tournaments
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_clash_players
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_clash_players
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_challenger_league
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_challenger_league
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_grandmaster_league
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_grandmaster_league
+    modules: [http_client, json, env]
+
+  - name: riot_api_get_master_league
+    kind: function.lua
+    source: file://api/riot_api.lua
+    method: get_master_league
     modules: [http_client, json, env]
 
   # ── Data Dragon Functions ────────────────────────────
@@ -206,6 +252,8 @@ entries:
       - env
       - http_client
       - json
+      - contract
+      - time
 
   - name: discord_notifier
     kind: process.service
@@ -213,6 +261,58 @@ entries:
     host: app.lc:processes
     lifecycle:
       auto_start: true
+      restart:
+        max_attempts: 10
+        initial_delay: 2s
+        max_delay: 60s
+        backoff_factor: 2.0
+
+  # ── Telegram Notifier (#16) ──────────────────────────
+  - name: telegram_notifier_process
+    kind: process.lua
+    source: file://telegram_notifier.lua
+    method: main
+    modules:
+      - logger
+      - events
+      - env
+      - http_client
+      - json
+
+  - name: telegram_notifier
+    kind: process.service
+    process: app.lc:telegram_notifier_process
+    host: app.lc:processes
+    lifecycle:
+      auto_start: true
+      restart:
+        max_attempts: 10
+        initial_delay: 2s
+        max_delay: 60s
+        backoff_factor: 2.0
+
+  # ── Weekly Digest ────────────────────────────────────
+  - name: weekly_digest_process
+    kind: process.lua
+    source: file://weekly_digest.lua
+    method: main
+    modules:
+      - logger
+      - events
+      - env
+      - http_client
+      - json
+      - time
+      - contract
+
+  - name: weekly_digest
+    kind: process.service
+    process: app.lc:weekly_digest_process
+    host: app.lc:processes
+    lifecycle:
+      auto_start: true
+      depends_on:
+        - app.lc:db
       restart:
         max_attempts: 10
         initial_delay: 2s
@@ -229,6 +329,7 @@ entries:
       platform: RU
       region: EUROPE
       fetch_interval: "10m"
+      ranked_interval: "2m"
       discord_notify: true
 
   # ── HTTP Infrastructure ──────────────────────────────
@@ -245,6 +346,20 @@ entries:
     prefix: /
 
   # ── API Endpoints ────────────────────────────────────
+  - name: api_health
+    kind: function.lua
+    source: file://dashboard/handlers/api_health.lua
+    method: handler
+    modules: [http, contract]
+
+  - name: api_health_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /health
+    func: app.lc:api_health
+
   - name: api_search
     kind: function.lua
     source: file://dashboard/handlers/api_search.lua
@@ -277,7 +392,7 @@ entries:
     kind: function.lua
     source: file://dashboard/handlers/api_rotations.lua
     method: handler
-    modules: [http, json, funcs]
+    modules: [http, json, funcs, contract]
 
   - name: api_rotations_endpoint
     kind: http.endpoint
@@ -396,6 +511,90 @@ entries:
     method: POST
     path: /api/match-notes
     func: app.lc:api_match_notes
+
+  # ── Admin Players API (#18) ──────────────────────────
+  - name: api_admin_players
+    kind: function.lua
+    source: file://dashboard/handlers/api_admin_players.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_admin_players_get_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/admin/players
+    func: app.lc:api_admin_players
+
+  - name: api_admin_players_post_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: POST
+    path: /api/admin/players
+    func: app.lc:api_admin_players
+
+  - name: api_admin_players_delete_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: DELETE
+    path: /api/admin/players
+    func: app.lc:api_admin_players
+
+  # ── Leaderboard API (#15) ────────────────────────────
+  - name: api_leaderboard
+    kind: function.lua
+    source: file://dashboard/handlers/api_leaderboard.lua
+    method: handler
+    modules: [http, json, funcs, contract]
+
+  - name: api_leaderboard_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/leaderboard
+    func: app.lc:api_leaderboard
+
+  # ── Clash API (#14) ──────────────────────────────────
+  - name: api_clash
+    kind: function.lua
+    source: file://dashboard/handlers/api_clash.lua
+    method: handler
+    modules: [http, json, funcs, contract]
+
+  - name: api_clash_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/clash
+    func: app.lc:api_clash
+
+  # ── Notification Prefs API (#13) ────────────────────
+  - name: api_notification_prefs
+    kind: function.lua
+    source: file://dashboard/handlers/api_notification_prefs.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_notification_prefs_get_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/notification-prefs
+    func: app.lc:api_notification_prefs
+
+  - name: api_notification_prefs_put_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: PUT
+    path: /api/notification-prefs
+    func: app.lc:api_notification_prefs
 
   # ── Goals API (#26) ────────────────────────────────
   - name: api_goals

@@ -273,7 +273,32 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 .extended-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; display: none; }
 .extended-stats.visible { display: grid; }
 .ext-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+.ext-card.empty-state { opacity: 0.5; }
+.ext-card.empty-state .empty-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.ext-card.empty-state .empty-progress { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.ext-card.empty-state .empty-progress-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s; }
 .ext-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+
+/* Data Freshness */
+.freshness-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.freshness-dot { width: 6px; height: 6px; border-radius: 50%; }
+.freshness-dot.fresh { background: var(--green); }
+.freshness-dot.stale { background: var(--yellow); }
+.freshness-dot.old { background: var(--red); }
+
+/* Draft Analysis in Live Game */
+.draft-analysis { display: flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.draft-team { flex: 1; }
+.draft-team-label { font-size: 10px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+.draft-bar { height: 10px; border-radius: 5px; overflow: hidden; display: flex; margin-bottom: 4px; }
+.draft-bar .phys { background: #ef4444; }
+.draft-bar .magic { background: #3b82f6; }
+.draft-bar .true-d { background: #e2e8f0; }
+.draft-legend { display: flex; gap: 8px; font-size: 9px; color: var(--text-muted); }
+.draft-tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; display: inline-block; margin-top: 4px; }
+.draft-tag.ad-heavy { background: rgba(239,68,68,0.15); color: #ef4444; }
+.draft-tag.ap-heavy { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.draft-tag.mixed { background: rgba(200,155,60,0.15); color: var(--gold); }
 /* LP Velocity */
 .vel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
 .vel-value { font-size: 22px; font-weight: 700; }
@@ -285,6 +310,56 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 .enemy-champ { flex: 1; font-size: 13px; font-weight: 500; }
 .enemy-games { font-size: 12px; }
 .enemy-wr { font-size: 13px; font-weight: 700; min-width: 50px; text-align: right; }
+
+/* Item Power Spikes */
+.spike-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.spike-table th { font-size: 10px; color: var(--text-muted); text-transform: uppercase; padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+.spike-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.spike-item-img { width: 24px; height: 24px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+.spike-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 60px; }
+.spike-fill { height: 100%; border-radius: 3px; }
+
+/* Scaling Analysis */
+.scaling-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.scaling-bucket { text-align: center; padding: 8px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid var(--border); }
+.scaling-wr { font-size: 20px; font-weight: 700; font-family: var(--font-mono); }
+.scaling-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.scaling-games { font-size: 10px; color: var(--text-muted); }
+.scaling-gold { font-size: 11px; color: var(--gold); margin-top: 2px; }
+
+/* Meta Tracker */
+.meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.meta-champ-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; }
+.meta-champ-card img { width: 32px; height: 32px; border-radius: 50%; margin-bottom: 4px; }
+.meta-champ-name { font-size: 11px; font-weight: 600; }
+.meta-champ-wr { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+.meta-champ-sub { font-size: 10px; color: var(--text-muted); }
+
+/* Opponent History */
+.opp-hist-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.opp-hist-row:last-child { border-bottom: none; }
+.opp-hist-name { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opp-hist-record { font-family: var(--font-mono); min-width: 50px; text-align: right; }
+
+/* Death Analysis Tags */
+.death-tag { font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; display: inline-block; margin: 1px; }
+.death-tag.dt-solo { background: rgba(239,68,68,0.15); color: #ef4444; }
+.death-tag.dt-gank { background: rgba(249,115,22,0.15); color: #f97316; }
+.death-tag.dt-teamfight { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.death-tag.dt-caught { background: rgba(168,85,247,0.15); color: #a855f7; }
+
+/* Gold Efficiency Curve */
+.gold-curve-wrap { width: 100%; }
+.gold-curve-wrap svg { width: 100%; height: auto; }
+
+/* Champion Pool Advisor */
+.pool-advice { padding: 8px 12px; margin-bottom: 6px; background: rgba(255,255,255,0.02); border-left: 3px solid var(--blue); border-radius: 4px; font-size: 12px; }
+.pool-advice.pool-warn { border-left-color: var(--yellow); }
+.pool-advice.pool-good { border-left-color: var(--green); }
+.pool-tag { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; display: inline-block; margin-right: 4px; }
+.pool-tag.ad { background: rgba(239,68,68,0.15); color: #ef4444; }
+.pool-tag.ap { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.pool-tag.tank { background: rgba(34,197,94,0.15); color: #22c55e; }
 
 .cb-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
 .cb-row:last-child { border-bottom: none; }
@@ -996,7 +1071,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       <option value="TW2">TW</option>
       <option value="VN2">VN</option>
     </select>
-    <select id="recent-select" style="display:none;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 8px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;min-width:160px;max-width:220px;">
+    <select id="recent-select" style="display:none;">
       <option value="">Recent searches...</option>
     </select>
     <input type="text" id="search-input" placeholder="Search player... (e.g. Faker#KR1)" autocomplete="off" />
@@ -1007,6 +1082,11 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 
   <div class="error-msg" id="error-msg"></div>
   <div class="loading hidden" id="loading">Searching...</div>
+
+  <div class="recent-searches" id="recent-searches-section" style="display:none;">
+    <div class="section-title" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Recent Searches</div>
+    <div class="recent-grid" id="recent-grid"></div>
+  </div>
 
   <div class="fav-section" id="fav-section" style="display:none;">
     <div class="section-title">Favorites</div>
@@ -1019,6 +1099,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       <div class="profile-info">
         <h2 id="profile-name">Name <span id="profile-tag">#TAG</span></h2>
         <div class="level" id="profile-level">Level —</div>
+        <div class="freshness-badge" id="profile-freshness"></div>
         <div id="profile-rank-pct"></div>
         <div id="profile-challenges"></div>
       </div>
@@ -1045,22 +1126,19 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     <div class="stats-tabs" id="stats-tabs">
       <button class="stats-tab active" data-panel="panel-overview">Overview</button>
       <button class="stats-tab" data-panel="panel-champions">Champions</button>
-      <button class="stats-tab" data-panel="panel-roles">Roles</button>
-      <button class="stats-tab" data-panel="panel-advanced">Advanced</button>
+      <button class="stats-tab" data-panel="panel-advanced">Analytics</button>
       <button class="stats-tab" data-panel="panel-matchups">Matchups</button>
-      <button class="stats-tab" data-panel="panel-items">Items</button>
-      <button class="stats-tab" data-panel="panel-synergy">Synergy</button>
-      <button class="stats-tab" data-panel="panel-builds">Builds</button>
+      <button class="stats-tab" data-panel="panel-items">Builds</button>
       <button class="stats-tab" data-panel="panel-insights">Insights</button>
     </div>
     <div class="stats-panel active" id="panel-overview"></div>
     <div class="stats-panel" id="panel-champions"></div>
-    <div class="stats-panel" id="panel-roles"></div>
+    <div class="stats-panel" id="panel-roles" style="display:none;"></div>
     <div class="stats-panel" id="panel-advanced"></div>
     <div class="stats-panel" id="panel-matchups"></div>
     <div class="stats-panel" id="panel-items"></div>
-    <div class="stats-panel" id="panel-synergy"></div>
-    <div class="stats-panel" id="panel-builds"></div>
+    <div class="stats-panel" id="panel-synergy" style="display:none;"></div>
+    <div class="stats-panel" id="panel-builds" style="display:none;"></div>
     <div class="stats-panel" id="panel-insights"></div>
   </div>
 
@@ -1090,6 +1168,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     <div class="ext-card" id="ext-objectives"></div>
     <div class="ext-card" id="ext-tilt-score"></div>
     <div class="ext-card" id="ext-playstyle"></div>
+    <div class="ext-card" id="ext-meta-tracker" style="grid-column:1/-1;"></div>
+    <div class="ext-card" id="ext-opponent-history"></div>
   </div>
 
   <div class="tilt-banner" id="tilt-banner"></div>
@@ -1199,6 +1279,14 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   var runeData = {};
   var currentPlayerData = null;
   var timelineCache = {};
+
+  // Champion damage type map (AD/AP) — populated from participant data
+  window._champTypeMap = {};
+  // Common known AD champs (auto-attackers, AD casters)
+  var _AD_CHAMPS='Aatrox,Aphelios,Camille,Darius,Draven,Fiora,Gangplank,Garen,Graves,Hecarim,Illaoi,Irelia,Jarvan IV,Jax,Jayce,Jinx,Kayn,Kha\'Zix,Kindred,Kled,Lee Sin,Lucian,Master Yi,Miss Fortune,Nocturne,Olaf,Pantheon,Pyke,Quinn,Rakan,Rek\'Sai,Renekton,Rengar,Riven,Samira,Senna,Sett,Sivir,Talon,Tristana,Trundle,Tryndamere,Twitch,Udyr,Urgot,Varus,Vayne,Vi,Viego,Wukong,Xayah,Xin Zhao,Yasuo,Yone,Zed,Caitlyn,Ashe,Ezreal,Kalista,Kai\'Sa,Nilah,Smolder,Naafiri,Briar'.split(',');
+  var _AP_CHAMPS='Ahri,Akali,Anivia,Annie,Aurelion Sol,Aurora,Azir,Brand,Cassiopeia,Diana,Ekko,Elise,Evelynn,Fiddlesticks,Fizz,Galio,Gwen,Heimerdinger,Hwei,Karma,Karthus,Kassadin,Katarina,Kayle,Kennen,LeBlanc,Lillia,Lissandra,Lulu,Lux,Malphite,Malzahar,Maokai,Morgana,Nami,Neeko,Nidalee,Orianna,Rumble,Ryze,Seraphine,Shaco,Singed,Sona,Soraka,Swain,Sylas,Syndra,Taliyah,Teemo,Twisted Fate,Veigar,Vel\'Koz,Viktor,Vladimir,Xerath,Ziggs,Zilean,Zoe,Zyra,Lulu,Janna,Yuumi,Nunu & Willump,Ivern'.split(',');
+  for (var ci=0;ci<_AD_CHAMPS.length;ci++) window._champTypeMap[_AD_CHAMPS[ci]]='AD';
+  for (var ci=0;ci<_AP_CHAMPS.length;ci++) window._champTypeMap[_AP_CHAMPS[ci]]='AP';
 
   var SPELL_MAP = {
     1:'SummonerBoost',3:'SummonerExhaust',4:'SummonerFlash',
@@ -1372,18 +1460,47 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   function loadRecentSearches() {
     fetch('/api/recent-searches').then(function(r){return r.json();}).then(function(data){
       var searches=data.searches||[];
+      // Keep hidden select for backwards compat
       var sel=document.getElementById('recent-select');
       sel.innerHTML='<option value="">Recent searches...</option>';
-      if (searches.length===0) { sel.style.display='none'; return; }
-      for (var i=0;i<searches.length;i++) {
+      sel.style.display='none';
+
+      // Render rich recent searches grid
+      var section=document.getElementById('recent-searches-section');
+      var grid=document.getElementById('recent-grid');
+      if (!grid||searches.length===0) { if(section) section.style.display='none'; return; }
+      section.style.display='';
+      grid.innerHTML='';
+      for (var i=0;i<Math.min(searches.length,8);i++) {
         var s=searches[i];
         var label=s.game_name+'#'+s.tag_line;
-        var opt=document.createElement('option');
-        opt.value=label;
-        opt.textContent=label;
-        sel.appendChild(opt);
+        var card=document.createElement('div');
+        card.className='recent-card';
+        var rankStr='';
+        if (s.tier&&s.tier!=='') {
+          var tierClr={'IRON':'#8b7355','BRONZE':'#cd7f32','SILVER':'#c0c0c0','GOLD':'#ffd700','PLATINUM':'#00cec9','EMERALD':'#2ecc71','DIAMOND':'#9b59b6','MASTER':'#e74c3c','GRANDMASTER':'#e74c3c','CHALLENGER':'#f1c40f'};
+          rankStr='<div class="recent-rank" style="color:'+(tierClr[s.tier]||'var(--text-muted)')+'">'+esc(s.tier)+' '+esc(s.rank||'')+' '+(s.lp||0)+' LP</div>';
+        }
+        var wrStr='';
+        if (s.winrate!==undefined&&s.winrate!==null) {
+          var wrClr=s.winrate>=50?'var(--green)':'var(--red)';
+          wrStr='<div class="recent-wr"><span style="color:'+wrClr+'">'+s.winrate+'% WR</span></div>';
+        }
+        var timeStr='';
+        if (s.searched_at) {
+          var ago=Math.floor((Date.now()-new Date(s.searched_at).getTime())/60000);
+          timeStr='<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">'+(ago<60?ago+'m ago':ago<1440?Math.floor(ago/60)+'h ago':Math.floor(ago/1440)+'d ago')+'</div>';
+        }
+        card.innerHTML='<div class="recent-name">'+esc(s.game_name)+' <span class="tag">#'+esc(s.tag_line)+'</span></div>'+rankStr+wrStr+timeStr;
+        (function(name,tag,plt){
+          card.addEventListener('click',function(){
+            document.getElementById('search-input').value=name+'#'+tag;
+            if(plt) document.getElementById('region-select').value=plt;
+            doSearch();
+          });
+        })(s.game_name,s.tag_line,s.platform);
+        grid.appendChild(card);
       }
-      sel.style.display='';
     }).catch(function(){});
   }
 
@@ -1448,6 +1565,15 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     document.getElementById('profile-name').innerHTML=esc(acc.game_name)+' <span>#'+esc(acc.tag_line)+'</span>';
     document.getElementById('profile-level').textContent='Level '+(sum.level||'—');
     document.getElementById('profile-icon').src=sum.profile_icon_url||'';
+
+    // Data Freshness (#17)
+    var freshEl=document.getElementById('profile-freshness');
+    if (data.updated_at) {
+      var ageMin=Math.floor((Date.now()-new Date(data.updated_at).getTime())/60000);
+      var ageStr=ageMin<1?'just now':ageMin<60?ageMin+'m ago':ageMin<1440?Math.floor(ageMin/60)+'h ago':Math.floor(ageMin/1440)+'d ago';
+      var freshCls=ageMin<10?'fresh':ageMin<60?'stale':'old';
+      freshEl.innerHTML='<span class="freshness-dot '+freshCls+'"></span> Updated '+ageStr;
+    } else { freshEl.innerHTML=''; }
 
     var chEl=document.getElementById('profile-challenges');
     chEl.innerHTML='';
@@ -1587,7 +1713,22 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       var masteryHtml=p.mastery_level?'<span class="live-mastery muted">M'+p.mastery_level+'</span>':'';
       var streakHtml='';
       if (p.streak&&Math.abs(p.streak)>=3) { var sClr=p.streak>0?'var(--green)':'var(--red)'; streakHtml='<span style="color:'+sClr+';font-size:11px;">'+(p.streak>0?p.streak+'W':Math.abs(p.streak)+'L')+'</span>'; }
-      var row='<div class="live-player'+(isMe?' is-me':'')+'">'+icon+spells+runesHtml+'<span>'+esc(p.champion_name)+'</span>'+masteryHtml+' <span class="muted">'+esc(p.summoner_name||'')+'</span>'+rankHtml+champWrHtml+streakHtml+'</div>';
+      // Threat score for enemy team players
+      var threatHtml='';
+      if (!isMe&&p.team_id!==(lg.participants||[]).filter(function(pp){return pp.puuid===currentPuuid;})[0]&&p.ranked) {
+        var threatScore=0;
+        if (p.ranked&&p.ranked.tier) {
+          var tierVal={'IRON':1,'BRONZE':2,'SILVER':3,'GOLD':4,'PLATINUM':5,'EMERALD':6,'DIAMOND':7,'MASTER':8,'GRANDMASTER':9,'CHALLENGER':10};
+          threatScore+=(tierVal[p.ranked.tier]||3)*5;
+        }
+        if (p.champion_wr&&p.champion_wr>55) threatScore+=15;
+        if (p.streak&&p.streak>=3) threatScore+=10;
+        if (p.mastery_level&&p.mastery_level>=7) threatScore+=5;
+        threatScore=Math.min(100,threatScore);
+        if (threatScore>=60) threatHtml='<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(239,68,68,0.15);color:var(--red);font-weight:600;">HIGH</span>';
+        else if (threatScore>=40) threatHtml='<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(245,158,11,0.15);color:var(--yellow);font-weight:600;">MED</span>';
+      }
+      var row='<div class="live-player'+(isMe?' is-me':'')+'">'+icon+spells+runesHtml+'<span>'+esc(p.champion_name)+'</span>'+masteryHtml+' <span class="muted">'+esc(p.summoner_name||'')+'</span>'+rankHtml+champWrHtml+streakHtml+threatHtml+'</div>';
       if (p.team_id===100) blueHtml+=row; else redHtml+=row;
     }
     // Bans
@@ -1602,7 +1743,228 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       if (bbItems.length>0) blueBans='<div class="live-bans"><span class="live-bans-label">Bans:</span>'+bbItems.join('')+'</div>';
       if (rbItems.length>0) redBans='<div class="live-bans"><span class="live-bans-label">Bans:</span>'+rbItems.join('')+'</div>';
     }
-    teamsEl.innerHTML=blueHtml+blueBans+'</div>'+redHtml+redBans+'</div>';
+    // Draft Analysis — AD/AP split per team
+    var CHAMP_TYPE_MAP=window._champTypeMap||{};
+    function teamDraftDmg(participants, teamId) {
+      var ad=0,ap=0,mixed=0,total=0;
+      for (var di=0;di<participants.length;di++) {
+        if (participants[di].team_id!==teamId) continue;
+        total++;
+        var cn=participants[di].champion_name||'';
+        var ct=CHAMP_TYPE_MAP[cn];
+        if (ct==='AD') ad++;
+        else if (ct==='AP') ap++;
+        else mixed++;
+      }
+      return {ad:ad,ap:ap,mixed:mixed,total:total};
+    }
+    var blueDmg=teamDraftDmg(lg.participants||[],100);
+    var redDmg=teamDraftDmg(lg.participants||[],200);
+    var draftHtml='';
+    if (blueDmg.total>0||redDmg.total>0) {
+      function draftTeamHtml(d,label,color) {
+        if (d.total===0) return '';
+        var adPct=Math.round(d.ad/d.total*100),apPct=Math.round(d.ap/d.total*100),mixPct=100-adPct-apPct;
+        var tag=adPct>=60?'<span class="draft-tag ad-heavy">AD Heavy</span>':apPct>=60?'<span class="draft-tag ap-heavy">AP Heavy</span>':'<span class="draft-tag mixed">Mixed</span>';
+        return '<div class="draft-team"><div class="draft-team-label" style="color:'+color+'">'+label+'</div>'
+          +'<div class="draft-bar"><div class="phys" style="width:'+adPct+'%"></div><div class="magic" style="width:'+apPct+'%"></div><div class="true-d" style="width:'+mixPct+'%"></div></div>'
+          +'<div class="draft-legend"><span>AD '+adPct+'%</span><span>AP '+apPct+'%</span><span>Mixed '+mixPct+'%</span></div>'
+          +tag+'</div>';
+      }
+      draftHtml='<div class="draft-analysis">'+draftTeamHtml(blueDmg,'Blue Team','var(--blue)')+draftTeamHtml(redDmg,'Red Team','var(--red)')+'</div>';
+    }
+    teamsEl.innerHTML=blueHtml+blueBans+'</div>'+redHtml+redBans+'</div>'+draftHtml;
+  }
+
+  // ── #1 Item Power Spikes ────────────────────────────
+  function computeItemPowerSpikes() {
+    if (allMatches.length<5) return [];
+    // Track WR per completed item (cost>2000 = completed item)
+    var itemStats={};
+    for (var i=0;i<allMatches.length;i++) {
+      var m=allMatches[i], items=m.items||[];
+      var completedCount=0;
+      for (var j=0;j<items.length;j++) {
+        var id=items[j]; if(!id||id<=0) continue;
+        var info=itemData[String(id)];
+        if (!info) continue;
+        var gold=info.gold&&info.gold.total||0;
+        if (gold<2000) continue; // Skip boots, components, wards
+        completedCount++;
+        var key=String(id);
+        if (!itemStats[key]) itemStats[key]={id:id,name:info.name||'Item '+id,wins:0,games:0,slot1:0,slot1w:0,slot2:0,slot2w:0,slot3:0,slot3w:0};
+        itemStats[key].games++;
+        if (m.win) itemStats[key].wins++;
+        // Track by build order slot (approx: 1st, 2nd, 3rd completed)
+        if (completedCount===1) { itemStats[key].slot1++; if(m.win)itemStats[key].slot1w++; }
+        else if (completedCount===2) { itemStats[key].slot2++; if(m.win)itemStats[key].slot2w++; }
+        else if (completedCount===3) { itemStats[key].slot3++; if(m.win)itemStats[key].slot3w++; }
+      }
+    }
+    var result=[];
+    for (var k in itemStats) {
+      var s=itemStats[k];
+      if (s.games<2) continue;
+      s.wr=Math.round(s.wins/s.games*100);
+      s.slot1wr=s.slot1>=2?Math.round(s.slot1w/s.slot1*100):null;
+      s.slot2wr=s.slot2>=2?Math.round(s.slot2w/s.slot2*100):null;
+      s.slot3wr=s.slot3>=2?Math.round(s.slot3w/s.slot3*100):null;
+      result.push(s);
+    }
+    result.sort(function(a,b){return b.games-a.games;});
+    return result.slice(0,10);
+  }
+
+  // ── #2 Scaling Analysis ────────────────────────────
+  function computeScalingAnalysis() {
+    var buckets=[
+      {label:'0-15 min',min:0,max:900,wins:0,games:0,gold:0,tag:'Early'},
+      {label:'15-25 min',min:900,max:1500,wins:0,games:0,gold:0,tag:'Mid'},
+      {label:'25-35 min',min:1500,max:2100,wins:0,games:0,gold:0,tag:'Late'},
+      {label:'35+ min',min:2100,max:99999,wins:0,games:0,gold:0,tag:'Ultra Late'}
+    ];
+    for (var i=0;i<allMatches.length;i++) {
+      var m=allMatches[i], dur=m.game_duration_raw||0;
+      for (var b=0;b<buckets.length;b++) {
+        if (dur>=buckets[b].min&&dur<buckets[b].max) {
+          buckets[b].games++;
+          if (m.win) buckets[b].wins++;
+          buckets[b].gold+=(m.gold_earned||0);
+          break;
+        }
+      }
+    }
+    for (var b=0;b<buckets.length;b++) {
+      buckets[b].wr=buckets[b].games>0?Math.round(buckets[b].wins/buckets[b].games*100):0;
+      buckets[b].avgGold=buckets[b].games>0?Math.round(buckets[b].gold/buckets[b].games):0;
+    }
+    return buckets;
+  }
+
+  // ── #4 Opponent History ────────────────────────────
+  function computeOpponentHistory() {
+    var opps={};
+    for (var i=0;i<allMatches.length;i++) {
+      var m=allMatches[i], enemies=m.enemies||[];
+      for (var j=0;j<enemies.length;j++) {
+        var e=enemies[j], name=e.summoner_name||'';
+        if (!name||e.is_me) continue;
+        if (!opps[name]) opps[name]={name:name,wins:0,losses:0,games:0,champs:[],lastSeen:0};
+        opps[name].games++;
+        if (m.win) opps[name].wins++; else opps[name].losses++;
+        var gc=m.game_creation||0;
+        if (gc>opps[name].lastSeen) opps[name].lastSeen=gc;
+        if (opps[name].champs.indexOf(e.champion_name)===-1&&e.champion_name) opps[name].champs.push(e.champion_name);
+      }
+    }
+    var result=[];
+    for (var k in opps) { if (opps[k].games>=2) result.push(opps[k]); }
+    result.sort(function(a,b){return b.games-a.games;});
+    return result.slice(0,15);
+  }
+
+  // ── #6 Death Analysis ────────────────────────────
+  function classifyDeaths(events, pTeam, myTeamIds) {
+    // Classify each death: solo, gank (1v2+), teamfight (3v3+), caught (alone far from allies)
+    var deaths={solo:0,gank:0,teamfight:0,caught:0,total:0};
+    if (!events) return deaths;
+    for (var i=0;i<events.length;i++) {
+      var e=events[i];
+      if (e.type!=='CHAMPION_KILL') continue;
+      var killerId=String(e.killer_id||0);
+      var victimId=String(e.victim_id||0);
+      var assistIds=e.assisting_participant_ids||[];
+      // Only count deaths of "my team" players
+      if (!myTeamIds[victimId]) continue;
+      deaths.total++;
+      var enemyCount=1+assistIds.filter(function(a){return !myTeamIds[String(a)];}).length;
+      var allyNearby=assistIds.filter(function(a){return myTeamIds[String(a)];}).length;
+      if (enemyCount===1&&allyNearby===0) deaths.solo++;
+      else if (enemyCount>=2&&allyNearby===0) deaths.caught++;
+      else if (enemyCount>=3&&allyNearby>=2) deaths.teamfight++;
+      else deaths.gank++;
+    }
+    return deaths;
+  }
+
+  // ── #7 Gold Efficiency per Minute ────────────────
+  function computeGoldEfficiency() {
+    if (allMatches.length<3) return null;
+    // Compute avg gold/min for wins vs losses
+    var winGPM=[],lossGPM=[];
+    for (var i=0;i<allMatches.length;i++) {
+      var m=allMatches[i], dur=m.game_duration_raw||0;
+      if (dur<300) continue;
+      var gpm=Math.round((m.gold_earned||0)/(dur/60));
+      if (m.win) winGPM.push(gpm); else lossGPM.push(gpm);
+    }
+    function avg(arr){if(!arr.length)return 0;var s=0;for(var i=0;i<arr.length;i++)s+=arr[i];return Math.round(s/arr.length);}
+    // Also compute gold/min curve by game duration buckets
+    var curve=[];
+    var bucketSize=5; // 5-minute buckets
+    for (var min=10;min<=40;min+=bucketSize) {
+      var g=0,c=0;
+      for (var i=0;i<allMatches.length;i++) {
+        var m=allMatches[i], dur=(m.game_duration_raw||0)/60;
+        if (dur>=min-bucketSize&&dur<min) {
+          g+=(m.gold_earned||0)/(dur||1);
+          c++;
+        }
+      }
+      curve.push({min:min,gpm:c>0?Math.round(g/c):0,count:c});
+    }
+    return {winAvg:avg(winGPM),lossAvg:avg(lossGPM),winGames:winGPM.length,lossGames:lossGPM.length,curve:curve};
+  }
+
+  // ── #8 Champion Pool Advisor ────────────────────
+  function computePoolAdvice(stats) {
+    if (!stats||!stats.top_champions||stats.top_champions.length<2) return [];
+    var tips=[];
+    var champs=stats.top_champions;
+    var roles=stats.roles||[];
+
+    // Check damage type coverage
+    var adCount=0,apCount=0,tankCount=0;
+    for (var i=0;i<Math.min(champs.length,8);i++) {
+      var cn=champs[i].champion_name;
+      var t=window._champTypeMap&&window._champTypeMap[cn];
+      if (t==='AD') adCount++;
+      else if (t==='AP') apCount++;
+      else tankCount++; // default / unknown / hybrid
+    }
+    if (adCount>0&&apCount===0) tips.push({type:'warn',text:'Your pool is all AD. Consider adding an AP champion to be flexible when your team needs magic damage.',tag:'AP Needed'});
+    else if (apCount>0&&adCount===0) tips.push({type:'warn',text:'Your pool is all AP. Add an AD champion for games where your team is already magic-heavy.',tag:'AD Needed'});
+    if (adCount>0&&apCount>0) tips.push({type:'good',text:'Good damage type mix with both AD and AP champions in your pool.',tag:'Balanced'});
+
+    // Check role coverage
+    var roleMap={};
+    for (var i=0;i<roles.length;i++) roleMap[roles[i].position]=roles[i].count;
+    var mainRole='',maxCount=0;
+    for (var r in roleMap) { if(roleMap[r]>maxCount){maxCount=roleMap[r];mainRole=r;} }
+
+    // Pool depth per role
+    var mainRoleChamps=0,offRoleChamps=0;
+    for (var i=0;i<Math.min(champs.length,10);i++) {
+      var c=champs[i];
+      if (c.position===mainRole) mainRoleChamps++;
+      else offRoleChamps++;
+    }
+    if (mainRoleChamps<3&&stats.games>=10) tips.push({type:'warn',text:'Only '+mainRoleChamps+' champion(s) in your main role. Expand to 3-4 for bans/matchups.',tag:'Pool Depth'});
+    if (mainRoleChamps>=4) tips.push({type:'good',text:'Deep champion pool in your main role ('+mainRoleChamps+' champs). Great for draft flexibility.',tag:'Deep Pool'});
+
+    // Comfort picks analysis
+    var highWrCount=0;
+    for (var i=0;i<Math.min(champs.length,5);i++) {
+      var wr=champs[i].games>0?Math.round(champs[i].wins/champs[i].games*100):0;
+      if (wr>=55&&champs[i].games>=3) highWrCount++;
+    }
+    if (highWrCount===0&&stats.games>=10) tips.push({type:'warn',text:'No champion with 55%+ WR in your top picks. Consider one-tricking to build a comfort pick.',tag:'One-Trick'});
+    if (highWrCount>=3) tips.push({type:'good',text:highWrCount+' champions with 55%+ WR — strong comfort picks.',tag:'Comfort'});
+
+    // Off-role advice
+    if (offRoleChamps===0&&roles.length>1) tips.push({type:'warn',text:'No off-role picks practiced. Learn 1-2 champions for your secondary role.',tag:'Off-Role'});
+
+    return tips;
   }
 
   function renderStats(stats) {
@@ -1730,55 +2092,32 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     if (topChamps.length===0) champHtml='<div class="muted">No champion data</div>';
     chEl.innerHTML=champHtml;
 
-    // ── Tab: Roles (donut chart) ──────────────────────
-    var roleEl=document.getElementById('panel-roles');
-    var roles=stats.roles||[];
-    var ROLE_NAMES={TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'};
-    var ROLE_COLORS={TOP:'#ef4444',JUNGLE:'#22c55e',MIDDLE:'#3b82f6',BOTTOM:'#f59e0b',UTILITY:'#a855f7'};
+    // (Roles tab merged into Advanced/Analytics tab below)
 
-    if (roles.length===0) { roleEl.innerHTML='<div class="muted">No role data</div>'; }
-    else {
-
-    // Build SVG donut
-    var totalGames=0;
-    for (var j=0;j<roles.length;j++) totalGames+=roles[j].count;
-    var R=54, CX=70, CY=70, circumference=2*Math.PI*R;
-    var svgPaths='';
-    var legendHtml='';
-    var offset=0;
-
-    for (var j=0;j<roles.length;j++) {
-      var r=roles[j];
-      var pct=totalGames>0?r.count/totalGames:0;
-      var dashLen=pct*circumference;
-      var dashGap=circumference-dashLen;
-      var color=ROLE_COLORS[r.position]||'var(--text-muted)';
-      svgPaths+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" stroke="'+color+'" stroke-width="16" stroke-dasharray="'+dashLen.toFixed(1)+' '+dashGap.toFixed(1)+'" stroke-dashoffset="'+(-offset).toFixed(1)+'" transform="rotate(-90 '+CX+' '+CY+')" />';
-      offset+=dashLen;
-
-      var rName=ROLE_NAMES[r.position]||r.position;
-      legendHtml+='<div class="donut-legend-item"><div class="donut-legend-dot" style="background:'+color+'"></div><span class="donut-legend-name">'+esc(rName)+'</span><span class="donut-legend-pct">'+r.pct+'%</span><span class="donut-legend-games">'+r.count+'G</span></div>';
-    }
-
-    var svg='<svg class="donut-svg" viewBox="0 0 140 140">'+svgPaths+'<text x="'+CX+'" y="'+CY+'" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-size="14" font-weight="700" font-family="var(--font-mono)">'+totalGames+'</text><text x="'+CX+'" y="'+(CY+14)+'" text-anchor="middle" fill="var(--text-muted)" font-size="9">games</text></svg>';
-
-    roleEl.innerHTML='<div class="donut-wrap">'+svg+'<div class="donut-legend">'+legendHtml+'</div></div>';
-    } // end roles else
-
-    // ── Tab: Advanced ───────────────────────────────
+    // ── Tab: Advanced / Analytics ────────────────────
     var advEl=document.getElementById('panel-advanced');
     var advHtml='';
 
-    // Radar chart in overview: KDA, CS, Damage, Vision, KP, Gold
-    // Normalize each axis to 0-1 range with reasonable ceilings
-    var radarAxes=[
-      {name:'KDA',val:stats.avg_kda||0,max:6,color:'#3b82f6'},
-      {name:'CS/min',val:stats.avg_cs_min||0,max:10,color:'#22c55e'},
-      {name:'Damage',val:(stats.avg_damage||0)/1000,max:30,color:'#ef4444'},
-      {name:'Vision',val:stats.avg_vision||0,max:40,color:'#a855f7'},
-      {name:'KP',val:stats.avg_kill_participation||0,max:100,color:'#f59e0b'},
-      {name:'Gold',val:(stats.avg_gold||0)/1000,max:16,color:'#c89b3c'},
+    // GPI (Game Performance Index) — 6-axis, normalized 0-100
+    var gpiAxes=[
+      {name:'Fighting',val:Math.min(100,Math.round(((stats.avg_kda||0)/5*40)+((stats.avg_kill_participation||0)/70*30)+((stats.avg_solo_kills||0)/2*30))),color:'#ef4444'},
+      {name:'Farming',val:Math.min(100,Math.round(((stats.avg_cs_min||0)/8*60)+((stats.avg_gold_per_min||0)/500*40))),color:'#22c55e'},
+      {name:'Vision',val:Math.min(100,Math.round(((stats.avg_vision||0)/30*50)+((stats.avg_wards_placed||0)/12*25)+((stats.avg_control_wards||0)/3*25))),color:'#a855f7'},
+      {name:'Objectives',val:Math.min(100,Math.round(((stats.avg_dragon_takedowns||0)/2*30)+((stats.avg_baron_takedowns||0)/1*30)+((stats.avg_turret_takedowns||0)/3*20)+((stats.avg_turret_plates||0)/2*20))),color:'#f59e0b'},
+      {name:'Durability',val:Math.min(100,Math.round(Math.max(0,(5-(stats.avg_deaths||5))/5*50)+((stats.avg_damage_taken||0)/25000*30)+((stats.avg_duration_win||0)>0?20:0))),color:'#3b82f6'},
+      {name:'Aggression',val:Math.min(100,Math.round(((stats.snowball_index||0)/8*40)+((stats.first_blood_rate||0)/30*30)+((stats.avg_damage_share||0)/25*30))),color:'#c89b3c'},
     ];
+    var gpiTotal=0;
+    for (var gi=0;gi<gpiAxes.length;gi++) gpiTotal+=gpiAxes[gi].val;
+    var gpiScore=Math.round(gpiTotal/gpiAxes.length);
+    var gpiGrade=gpiScore>=85?'S+':gpiScore>=75?'S':gpiScore>=65?'A':gpiScore>=50?'B':gpiScore>=35?'C':'D';
+    var gpiColor=gpiScore>=75?'var(--green)':gpiScore>=50?'var(--gold)':'var(--red)';
+
+    advHtml+='<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;"><div style="text-align:center;"><div style="font-size:36px;font-weight:800;color:'+gpiColor+';font-family:var(--font-mono);">'+gpiScore+'</div><div style="font-size:20px;font-weight:700;color:'+gpiColor+';">'+gpiGrade+'</div><div style="font-size:10px;color:var(--text-muted);">GPI Score</div></div><div style="flex:1;">';
+
+    // Radar chart — GPI axes
+    var radarAxes=[];
+    for (var gi=0;gi<gpiAxes.length;gi++) radarAxes.push({name:gpiAxes[gi].name,val:gpiAxes[gi].val,max:100,color:gpiAxes[gi].color});
     var rCX=100,rCY=100,rR=80,axes=radarAxes.length;
     var radarSvg='<svg class="radar-svg" viewBox="0 0 200 200">';
     // Grid rings
@@ -1818,7 +2157,28 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     }
     radarLeg+='</div>';
 
-    advHtml+='<div class="radar-wrap">'+radarSvg+radarLeg+'</div>';
+    advHtml+='<div class="radar-wrap">'+radarSvg+radarLeg+'</div></div></div>';
+
+    // Improvement Focus — top 3 weakest GPI axes
+    var gpiSorted=gpiAxes.slice().sort(function(a,b){return a.val-b.val;});
+    advHtml+='<div style="margin-bottom:16px;padding:12px;background:rgba(200,155,60,0.06);border:1px solid rgba(200,155,60,0.15);border-radius:8px;">';
+    advHtml+='<div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Focus Areas</div>';
+    for (var fi=0;fi<Math.min(3,gpiSorted.length);fi++) {
+      var fa=gpiSorted[fi];
+      var tip='';
+      if (fa.name==='Fighting') tip='Try to participate in more kills and look for solo kill opportunities';
+      else if (fa.name==='Farming') tip='Focus on last-hitting — aim for 7+ CS/min consistently';
+      else if (fa.name==='Vision') tip='Buy more control wards and place wards before objectives';
+      else if (fa.name==='Objectives') tip='Prioritize dragon/baron after winning teamfights';
+      else if (fa.name==='Durability') tip='Reduce deaths by improving map awareness and positioning';
+      else if (fa.name==='Aggression') tip='Look for early advantages — invades, trades, roams';
+      advHtml+='<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:12px;">';
+      advHtml+='<span style="color:'+fa.color+';font-weight:700;min-width:80px;">'+fa.name+'</span>';
+      advHtml+='<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:'+fa.val+'%;height:100%;background:'+fa.color+';border-radius:3px;"></div></div>';
+      advHtml+='<span style="font-weight:600;min-width:30px;text-align:right;">'+fa.val+'</span></div>';
+      if (tip) advHtml+='<div style="font-size:11px;color:var(--text-muted);margin-left:90px;margin-bottom:4px;">'+tip+'</div>';
+    }
+    advHtml+='</div>';
 
     // Advanced stat cards
     function fmtDur(s) { if(!s) return '—'; var m=Math.floor(s/60),ss=s%60; return m+':'+(ss<10?'0':'')+ss; }
@@ -1834,6 +2194,27 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     advHtml+='<div class="adv-card"><div class="adv-val" style="color:var(--blue);">'+(stats.unique_champions||0)+'</div><div class="adv-label">Unique Champs</div></div>';
     advHtml+='<div class="adv-card"><div class="adv-val">'+fmtDur(stats.avg_game_duration)+'</div><div class="adv-label">Avg Game</div></div>';
     advHtml+='</div>';
+
+    // Roles donut (merged from Roles tab)
+    var roles=stats.roles||[];
+    var ROLE_NAMES={TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'};
+    var ROLE_COLORS={TOP:'#ef4444',JUNGLE:'#22c55e',MIDDLE:'#3b82f6',BOTTOM:'#f59e0b',UTILITY:'#a855f7'};
+    if (roles.length>0) {
+      var totalGamesR=0;
+      for (var j=0;j<roles.length;j++) totalGamesR+=roles[j].count;
+      var R=54, CX=70, CY=70, circumference=2*Math.PI*R;
+      var svgPathsR='', legendHtmlR='', offsetR=0;
+      for (var j=0;j<roles.length;j++) {
+        var r=roles[j], pct=totalGamesR>0?r.count/totalGamesR:0;
+        var dashLen=pct*circumference, dashGap=circumference-dashLen;
+        var color=ROLE_COLORS[r.position]||'var(--text-muted)';
+        svgPathsR+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" stroke="'+color+'" stroke-width="16" stroke-dasharray="'+dashLen.toFixed(1)+' '+dashGap.toFixed(1)+'" stroke-dashoffset="'+(-offsetR).toFixed(1)+'" transform="rotate(-90 '+CX+' '+CY+')" />';
+        offsetR+=dashLen;
+        legendHtmlR+='<div class="donut-legend-item"><div class="donut-legend-dot" style="background:'+color+'"></div><span class="donut-legend-name">'+esc(ROLE_NAMES[r.position]||r.position)+'</span><span class="donut-legend-pct">'+r.pct+'%</span><span class="donut-legend-games">'+r.count+'G</span></div>';
+      }
+      var svgR='<svg class="donut-svg" viewBox="0 0 140 140">'+svgPathsR+'<text x="'+CX+'" y="'+CY+'" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-size="14" font-weight="700" font-family="var(--font-mono)">'+totalGamesR+'</text><text x="'+CX+'" y="'+(CY+14)+'" text-anchor="middle" fill="var(--text-muted)" font-size="9">games</text></svg>';
+      advHtml+='<div class="stats-section-title">Role Distribution</div><div class="donut-wrap">'+svgR+'<div class="donut-legend">'+legendHtmlR+'</div></div>';
+    }
 
     // Game length breakdown
     if (stats.short_game_wr!=null||stats.long_game_wr!=null) {
@@ -1923,6 +2304,71 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       }
     }
 
+    // #2 Scaling Analysis
+    var scaling=computeScalingAnalysis();
+    var hasScaling=false;
+    for (var sb=0;sb<scaling.length;sb++) { if(scaling[sb].games>0){hasScaling=true;break;} }
+    if (hasScaling) {
+      advHtml+='<div class="stats-section-title" style="margin-top:16px;">Scaling Analysis</div>';
+      advHtml+='<div class="scaling-bars">';
+      var bestBucket=-1,bestWr=0;
+      for (var sb=0;sb<scaling.length;sb++) { if(scaling[sb].games>0&&scaling[sb].wr>bestWr){bestWr=scaling[sb].wr;bestBucket=sb;} }
+      for (var sb=0;sb<scaling.length;sb++) {
+        var sc=scaling[sb];
+        if (sc.games===0) { advHtml+='<div class="scaling-bucket"><div class="scaling-label">'+sc.label+'</div><div class="scaling-wr muted">—</div><div class="scaling-games">0 games</div></div>'; continue; }
+        var wrCls=sc.wr>=50?'var(--green)':'var(--red)';
+        var isBest=sb===bestBucket?' style="border-color:var(--gold);"':'';
+        advHtml+='<div class="scaling-bucket"'+isBest+'><div class="scaling-label">'+sc.label+'</div><div class="scaling-wr" style="color:'+wrCls+';">'+sc.wr+'%</div><div class="scaling-games">'+sc.games+' games</div><div class="scaling-gold">'+fmtNumber(sc.avgGold)+' gold</div></div>';
+      }
+      advHtml+='</div>';
+      // Determine scaling profile
+      var earlyWr=scaling[0].games>=2?scaling[0].wr:50;
+      var lateWr=(scaling[2].games+scaling[3].games)>=2?Math.round(((scaling[2].wins+scaling[3].wins)/Math.max(1,scaling[2].games+scaling[3].games))*100):50;
+      var profile=earlyWr>lateWr+10?'Early Game Player':lateWr>earlyWr+10?'Late Game Scaler':'Balanced Across All Phases';
+      advHtml+='<div style="text-align:center;margin-top:6px;font-size:11px;color:var(--gold);font-weight:600;">Profile: '+profile+'</div>';
+    }
+
+    // #7 Gold Efficiency per Minute
+    var goldEff=computeGoldEfficiency();
+    if (goldEff) {
+      advHtml+='<div class="stats-section-title" style="margin-top:16px;">Gold Efficiency</div>';
+      advHtml+='<div style="display:flex;gap:24px;margin-bottom:8px;">';
+      advHtml+='<div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--green);font-family:var(--font-mono);">'+goldEff.winAvg+'</div><div style="font-size:10px;color:var(--text-muted);">GPM in Wins ('+goldEff.winGames+')</div></div>';
+      advHtml+='<div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--red);font-family:var(--font-mono);">'+goldEff.lossAvg+'</div><div style="font-size:10px;color:var(--text-muted);">GPM in Losses ('+goldEff.lossGames+')</div></div>';
+      var gpmDiff=goldEff.winAvg-goldEff.lossAvg;
+      advHtml+='<div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--gold);font-family:var(--font-mono);">+'+(gpmDiff>0?gpmDiff:0)+'</div><div style="font-size:10px;color:var(--text-muted);">GPM Diff</div></div>';
+      advHtml+='</div>';
+      // GPM Curve SVG
+      var validCurve=goldEff.curve.filter(function(c){return c.count>0;});
+      if (validCurve.length>=2) {
+        var gcW=300,gcH=80,maxGPM=0;
+        for (var gi=0;gi<validCurve.length;gi++) { if(validCurve[gi].gpm>maxGPM)maxGPM=validCurve[gi].gpm; }
+        maxGPM=Math.max(maxGPM,100);
+        var gcSvg='<svg viewBox="0 0 '+gcW+' '+(gcH+20)+'" class="gold-curve-wrap">';
+        // Ideal line (500 gpm benchmark)
+        var idealGPM=Math.min(500,maxGPM*1.1);
+        var idealY=Math.round(gcH-(idealGPM/maxGPM*(gcH-10)+5));
+        gcSvg+='<line x1="0" y1="'+idealY+'" x2="'+gcW+'" y2="'+idealY+'" stroke="rgba(200,155,60,0.3)" stroke-dasharray="4 4" />';
+        gcSvg+='<text x="'+gcW+'" y="'+(idealY-3)+'" text-anchor="end" fill="var(--gold)" font-size="8" opacity="0.6">Ideal</text>';
+        // Player curve
+        var pts='';
+        for (var gi=0;gi<validCurve.length;gi++) {
+          var x=Math.round(gi/(validCurve.length-1)*gcW);
+          var y=Math.round(gcH-(validCurve[gi].gpm/maxGPM*(gcH-10)+5));
+          pts+=x+','+y+' ';
+        }
+        gcSvg+='<polyline points="'+pts+'" fill="none" stroke="var(--green)" stroke-width="2" />';
+        for (var gi=0;gi<validCurve.length;gi++) {
+          var x=Math.round(gi/(validCurve.length-1)*gcW);
+          var y=Math.round(gcH-(validCurve[gi].gpm/maxGPM*(gcH-10)+5));
+          gcSvg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="var(--green)" />';
+          gcSvg+='<text x="'+x+'" y="'+(gcH+14)+'" text-anchor="middle" fill="var(--text-muted)" font-size="8">'+validCurve[gi].min+'m</text>';
+        }
+        gcSvg+='</svg>';
+        advHtml+='<div style="max-width:400px;">'+gcSvg+'</div>';
+      }
+    }
+
     advEl.innerHTML=advHtml;
 
     // ── Tab: Matchups ───────────────────────────────
@@ -1957,79 +2403,86 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       muEl.innerHTML+=lmHtml;
     }
 
-    // ── Tab: Items ──────────────────────────────────
+    // ── Tab: Builds (merged Items + Synergy + Builds) ──
     var itemsEl=document.getElementById('panel-items');
+    var combinedBuildsHtml='';
+
+    // Most Built Items
     var commonItems=stats.common_items||[];
-    if (commonItems.length===0) {
-      itemsEl.innerHTML='<div class="muted" style="padding:12px;">Not enough data</div>';
-    } else {
-      var itHtml='<div class="stats-section-title">Most Built Items</div><div class="items-grid">';
+    if (commonItems.length>0) {
+      combinedBuildsHtml+='<div class="stats-section-title">Most Built Items</div><div class="items-grid">';
       for (var ii=0;ii<commonItems.length;ii++) {
         var ci=commonItems[ii];
         var ciInfo=itemData[String(ci.item_id)];
         var ciName=ciInfo?ciInfo.name:'Item '+ci.item_id;
         var ciWrCls=ci.winrate>=50?'green':'red';
-        itHtml+='<div class="item-stat-card"><img src="'+itemImg(ci.item_id)+'" title="'+esc(ciName)+'" /><div class="item-stat-info"><div class="item-stat-name">'+esc(ciName)+'</div><div class="item-stat-sub"><span style="color:var(--'+ciWrCls+')">'+ci.winrate+'%</span> &middot; '+ci.count+'x ('+ci.pick_rate+'%)</div></div></div>';
+        combinedBuildsHtml+='<div class="item-stat-card"><img src="'+itemImg(ci.item_id)+'" title="'+esc(ciName)+'" /><div class="item-stat-info"><div class="item-stat-name">'+esc(ciName)+'</div><div class="item-stat-sub"><span style="color:var(--'+ciWrCls+')">'+ci.winrate+'%</span> &middot; '+ci.count+'x ('+ci.pick_rate+'%)</div></div></div>';
       }
-      itHtml+='</div>';
-      itemsEl.innerHTML=itHtml;
+      combinedBuildsHtml+='</div>';
     }
 
-    // ── Tab: Synergy ────────────────────────────────
-    var syEl=document.getElementById('panel-synergy');
-    var synergy=stats.ally_synergy||[];
-    if (synergy.length===0) {
-      syEl.innerHTML='<div class="muted" style="padding:12px;">Not enough synergy data (need 2+ games with same ally champion)</div>';
-    } else {
-      // Split into best and worst
-      var sorted=synergy.slice().sort(function(a,b){return b.winrate-a.winrate||(b.games-a.games);});
-      var best=sorted.filter(function(s){return s.winrate>=50;});
-      var worst=sorted.filter(function(s){return s.winrate<50;}).reverse();
-
-      var syHtml='';
-      if (best.length>0) {
-        syHtml+='<div class="stats-section-title" style="color:var(--green);">Best Synergy</div>';
-        syHtml+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
-        for (var bi=0;bi<Math.min(best.length,10);bi++) {
-          var b=best[bi];
-          var bIcon=b.champion_image?'<img class="sy-icon" src="'+esc(b.champion_image)+'" />':'<div class="sy-icon" style="background:var(--border);"></div>';
-          syHtml+='<div class="sy-card">'+bIcon+'<div class="sy-info"><div class="sy-name">'+esc(b.champion_name)+'</div><div class="sy-wr" style="color:var(--green)">'+b.winrate+'% WR</div><div class="sy-games">'+b.wins+'W '+b.losses+'L ('+b.games+')</div></div></div>';
-        }
-        syHtml+='</div>';
-      }
-      if (worst.length>0) {
-        syHtml+='<div class="stats-section-title" style="color:var(--red);">Worst Synergy</div>';
-        syHtml+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
-        for (var wi=0;wi<Math.min(worst.length,10);wi++) {
-          var w=worst[wi];
-          var wIcon=w.champion_image?'<img class="sy-icon" src="'+esc(w.champion_image)+'" />':'<div class="sy-icon" style="background:var(--border);"></div>';
-          syHtml+='<div class="sy-card">'+wIcon+'<div class="sy-info"><div class="sy-name">'+esc(w.champion_name)+'</div><div class="sy-wr" style="color:var(--red)">'+w.winrate+'% WR</div><div class="sy-games">'+w.wins+'W '+w.losses+'L ('+w.games+')</div></div></div>';
-        }
-        syHtml+='</div>';
-      }
-      syEl.innerHTML=syHtml;
-    }
-
-    // ── Tab: Builds (#20) ─────────────────────────────
-    var buildsEl=document.getElementById('panel-builds');
+    // Build Recommendations
     var bRecs=currentPlayerData&&currentPlayerData.build_recommendations||[];
-    if (bRecs.length===0) {
-      buildsEl.innerHTML='<div class="muted" style="padding:12px;">Not enough data for build recommendations (need 2+ games per build)</div>';
-    } else {
-      var brHtml='<div class="stats-section-title">Best Builds by Champion</div><div class="build-recs">';
+    if (bRecs.length>0) {
+      combinedBuildsHtml+='<div class="stats-section-title">Best Builds by Champion</div><div class="build-recs">';
       for (var bi=0;bi<bRecs.length;bi++) {
         var br=bRecs[bi];
-        var itemsHtml='';
-        for (var ii=0;ii<br.items.length;ii++) {
-          var info=itemData[String(br.items[ii])];
-          itemsHtml+='<img src="'+itemImg(br.items[ii])+'" title="'+(info?esc(info.name):'Item '+br.items[ii])+'" />';
+        var brItemsHtml='';
+        for (var bii=0;bii<br.items.length;bii++) {
+          var info=itemData[String(br.items[bii])];
+          brItemsHtml+='<img src="'+itemImg(br.items[bii])+'" title="'+(info?esc(info.name):'Item '+br.items[bii])+'" />';
         }
         var wrCls=br.winrate>=55?'color:var(--green)':br.winrate<45?'color:var(--red)':'';
-        brHtml+='<div class="build-rec-card"><div class="build-rec-champ">'+esc(br.champion_name)+'</div><div class="build-rec-items">'+itemsHtml+'</div><div class="build-rec-stats"><span style="'+wrCls+'">'+br.winrate+'% WR</span> &middot; '+br.games+' games</div></div>';
+        combinedBuildsHtml+='<div class="build-rec-card"><div class="build-rec-champ">'+esc(br.champion_name)+'</div><div class="build-rec-items">'+brItemsHtml+'</div><div class="build-rec-stats"><span style="'+wrCls+'">'+br.winrate+'% WR</span> &middot; '+br.games+' games</div></div>';
       }
-      brHtml+='</div>';
-      buildsEl.innerHTML=brHtml;
+      combinedBuildsHtml+='</div>';
     }
+
+    // Ally Synergy
+    var synergy=stats.ally_synergy||[];
+    if (synergy.length>0) {
+      var sorted=synergy.slice().sort(function(a,b){return b.winrate-a.winrate||(b.games-a.games);});
+      var bestSy=sorted.filter(function(s){return s.winrate>=50;});
+      var worstSy=sorted.filter(function(s){return s.winrate<50;}).reverse();
+      if (bestSy.length>0) {
+        combinedBuildsHtml+='<div class="stats-section-title" style="color:var(--green);">Best Synergy</div>';
+        combinedBuildsHtml+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
+        for (var bi=0;bi<Math.min(bestSy.length,8);bi++) {
+          var b=bestSy[bi];
+          var bIcon=b.champion_image?'<img class="sy-icon" src="'+esc(b.champion_image)+'" />':'<div class="sy-icon" style="background:var(--border);"></div>';
+          combinedBuildsHtml+='<div class="sy-card">'+bIcon+'<div class="sy-info"><div class="sy-name">'+esc(b.champion_name)+'</div><div class="sy-wr" style="color:var(--green)">'+b.winrate+'% WR</div><div class="sy-games">'+b.wins+'W '+b.losses+'L ('+b.games+')</div></div></div>';
+        }
+        combinedBuildsHtml+='</div>';
+      }
+      if (worstSy.length>0) {
+        combinedBuildsHtml+='<div class="stats-section-title" style="color:var(--red);">Worst Synergy</div>';
+        combinedBuildsHtml+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
+        for (var wi=0;wi<Math.min(worstSy.length,8);wi++) {
+          var w=worstSy[wi];
+          var wIcon=w.champion_image?'<img class="sy-icon" src="'+esc(w.champion_image)+'" />':'<div class="sy-icon" style="background:var(--border);"></div>';
+          combinedBuildsHtml+='<div class="sy-card">'+wIcon+'<div class="sy-info"><div class="sy-name">'+esc(w.champion_name)+'</div><div class="sy-wr" style="color:var(--red)">'+w.winrate+'% WR</div><div class="sy-games">'+w.wins+'W '+w.losses+'L ('+w.games+')</div></div></div>';
+        }
+        combinedBuildsHtml+='</div>';
+      }
+    }
+
+    // #1 Item Power Spikes
+    var spikes=computeItemPowerSpikes();
+    if (spikes.length>0) {
+      combinedBuildsHtml+='<div class="stats-section-title" style="margin-top:16px;">Item Power Spikes</div>';
+      combinedBuildsHtml+='<table class="spike-table"><thead><tr><th>Item</th><th>WR</th><th>Games</th><th>1st Item</th><th>2nd Item</th><th>3rd Item</th></tr></thead><tbody>';
+      for (var si=0;si<spikes.length;si++) {
+        var sp=spikes[si], wrCls=sp.wr>=50?'var(--green)':'var(--red)';
+        var s1=sp.slot1wr!==null?'<span style="color:'+(sp.slot1wr>=50?'var(--green)':'var(--red)')+'">'+sp.slot1wr+'%</span> <span class="muted">('+sp.slot1+')</span>':'<span class="muted">—</span>';
+        var s2=sp.slot2wr!==null?'<span style="color:'+(sp.slot2wr>=50?'var(--green)':'var(--red)')+'">'+sp.slot2wr+'%</span> <span class="muted">('+sp.slot2+')</span>':'<span class="muted">—</span>';
+        var s3=sp.slot3wr!==null?'<span style="color:'+(sp.slot3wr>=50?'var(--green)':'var(--red)')+'">'+sp.slot3wr+'%</span> <span class="muted">('+sp.slot3+')</span>':'<span class="muted">—</span>';
+        combinedBuildsHtml+='<tr><td><img class="spike-item-img" src="'+itemImg(sp.id)+'" />'+esc(sp.name)+'</td><td style="color:'+wrCls+';font-weight:700;">'+sp.wr+'%</td><td>'+sp.games+'</td><td>'+s1+'</td><td>'+s2+'</td><td>'+s3+'</td></tr>';
+      }
+      combinedBuildsHtml+='</tbody></table>';
+    }
+
+    if (!combinedBuildsHtml) combinedBuildsHtml='<div class="muted" style="padding:12px;">Not enough data for builds and items</div>';
+    itemsEl.innerHTML=combinedBuildsHtml;
 
     // ── Tab: Insights (#25, #29) ──────────────────────
     var insEl=document.getElementById('panel-insights');
@@ -2058,6 +2511,55 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         insHtml+='<div class="champ-rec">'+crIcon+'<div><div class="champ-rec-name">'+esc(cr.champion_name)+'</div><div class="champ-rec-reason">'+esc(cr.reason)+'</div></div></div>';
       }
       insHtml+='</div>';
+    }
+
+    // Coach Tips (rule-based)
+    if (stats.games>=3) {
+      var tips=[];
+      if ((stats.avg_deaths||0)>6) tips.push({type:'danger',text:'Averaging '+stats.avg_deaths+' deaths per game. Focus on dying less — each death gives 300+ gold to enemies.'});
+      if ((stats.avg_cs_min||0)<5.5&&stats.games>=5) tips.push({type:'warning',text:'CS/min is '+stats.avg_cs_min+'. Aim for 7+ by practicing last-hitting and not missing waves after fights.'});
+      if ((stats.avg_vision||0)<15&&stats.games>=5) tips.push({type:'info',text:'Vision score averaging '+stats.avg_vision+'. Buy control wards and use trinket on cooldown.'});
+      if ((stats.avg_kill_participation||0)<40) tips.push({type:'warning',text:'Kill participation is '+stats.avg_kill_participation+'%. Play around your team more — join fights or make picks.'});
+      if ((stats.avg_damage_share||0)>30&&(stats.avg_deaths||0)>5) tips.push({type:'info',text:'High damage share ('+stats.avg_damage_share+'%) but also high deaths. You\'re trading too aggressively.'});
+      if (stats.winrate>=55&&stats.games>=10) tips.push({type:'success',text:'Strong '+stats.winrate+'% win rate! Keep playing your comfort picks and maintaining consistency.'});
+      if (stats.short_game_wr&&stats.long_game_wr&&(stats.short_game_wr-stats.long_game_wr)>15) tips.push({type:'info',text:'You win early games but struggle late. Close out games faster or improve teamfighting.'});
+      if (tips.length>0) {
+        insHtml+='<div class="stats-section-title" style="margin-top:16px;">Coach Tips</div>';
+        for (var ti=0;ti<tips.length;ti++) {
+          var tipClr=tips[ti].type==='danger'?'var(--red)':tips[ti].type==='warning'?'var(--yellow)':tips[ti].type==='success'?'var(--green)':'var(--blue)';
+          insHtml+='<div style="padding:8px 12px;margin-bottom:6px;background:rgba(255,255,255,0.02);border-left:3px solid '+tipClr+';border-radius:4px;font-size:12px;">'+esc(tips[ti].text)+'</div>';
+        }
+      }
+    }
+
+    // Natural Language Session Summary
+    if (stats.games>=1) {
+      var wlStr=stats.wins+'W '+stats.losses+'L';
+      var wrStr=stats.winrate+'%';
+      var kdaStr=stats.avg_kills+'/'+stats.avg_deaths+'/'+stats.avg_assists;
+      var topC=(stats.top_champions&&stats.top_champions.length>0)?stats.top_champions[0].champion_name:'various champions';
+      var topCWr=(stats.top_champions&&stats.top_champions.length>0)?Math.round(stats.top_champions[0].wins/(stats.top_champions[0].games||1)*100)+'%':'N/A';
+      var streakStr=stats.streak>=3?(stats.streak_type==='W'?'on a '+stats.streak+' win streak':'on a '+stats.streak+' loss streak'):'';
+      var summary='Over '+stats.games+' recent games, this player went '+wlStr+' ('+wrStr+' WR) with an average KDA of '+kdaStr+'.';
+      summary+=' Most played champion is '+topC+' at '+topCWr+' win rate.';
+      if (streakStr) summary+=' Currently '+streakStr+'.';
+      if ((stats.avg_cs_min||0)>=7) summary+=' Strong farming at '+stats.avg_cs_min+' CS/min.';
+      if ((stats.avg_vision||0)>=25) summary+=' Excellent vision control.';
+      if ((stats.avg_kill_participation||0)>=60) summary+=' High team involvement with '+stats.avg_kill_participation+'% KP.';
+      insHtml+='<div class="stats-section-title" style="margin-top:16px;">Summary</div>';
+      insHtml+='<div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.6;">'+esc(summary)+'</div>';
+    }
+
+    // #8 Champion Pool Advisor
+    var poolTips=computePoolAdvice(stats);
+    if (poolTips.length>0) {
+      insHtml+='<div class="stats-section-title" style="margin-top:16px;">Champion Pool Advisor</div>';
+      for (var pi=0;pi<poolTips.length;pi++) {
+        var pt=poolTips[pi];
+        var tagCls=pt.tag==='AP Needed'?'ap':pt.tag==='AD Needed'?'ad':'tank';
+        var advCls=pt.type==='warn'?'pool-warn':pt.type==='good'?'pool-good':'';
+        insHtml+='<div class="pool-advice '+advCls+'"><span class="pool-tag '+tagCls+'">'+esc(pt.tag)+'</span> '+esc(pt.text)+'</div>';
+      }
     }
 
     if (!insHtml) insHtml='<div class="muted" style="padding:12px;">Not enough data for insights yet</div>';
@@ -2352,18 +2854,71 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       goldHtml+='</svg><div class="gg-legend"><span style="color:var(--green)">&#9650; Your team ahead</span><span style="color:var(--red)">&#9660; Enemy ahead</span></div></div>';
     }
 
+    // ── #5 Ward Placement Heatmap ──
+    var wardHtml='';
+    var wardEvents=[];
+    for (var i=0;i<evts.length;i++) {
+      if ((evts[i].type==='ward_placed'||evts[i].type==='WARD_PLACED')&&evts[i].x!=null&&evts[i].y!=null) wardEvents.push(evts[i]);
+    }
+    if (wardEvents.length>0) {
+      wardHtml='<div class="kill-map-wrap"><svg viewBox="0 0 '+SVG_SIZE+' '+SVG_SIZE+'" xmlns="http://www.w3.org/2000/svg">';
+      wardHtml+='<rect width="'+SVG_SIZE+'" height="'+SVG_SIZE+'" fill="#0d1117" rx="4"/>';
+      for (var g=0;g<5;g++) { var gp=Math.round(g*SVG_SIZE/4); wardHtml+='<line x1="'+gp+'" y1="0" x2="'+gp+'" y2="'+SVG_SIZE+'" stroke="rgba(255,255,255,0.04)"/>'; wardHtml+='<line x1="0" y1="'+gp+'" x2="'+SVG_SIZE+'" y2="'+gp+'" stroke="rgba(255,255,255,0.04)"/>'; }
+      wardHtml+='<line x1="0" y1="'+SVG_SIZE+'" x2="'+SVG_SIZE+'" y2="0" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4,4"/>';
+      wardHtml+='<text x="'+Math.round(SVG_SIZE*0.45)+'" y="'+Math.round(SVG_SIZE*0.52)+'" fill="rgba(255,255,255,0.12)" font-size="10">MID</text>';
+      // Plot wards
+      for (var i=0;i<wardEvents.length;i++) {
+        var we=wardEvents[i];
+        var wx=Math.round(we.x/MAP_SIZE*SVG_SIZE);
+        var wy=SVG_SIZE-Math.round(we.y/MAP_SIZE*SVG_SIZE);
+        wx=Math.max(4,Math.min(SVG_SIZE-4,wx)); wy=Math.max(4,Math.min(SVG_SIZE-4,wy));
+        var isMyWard=myTeamIds[String(we.creator_id||we.killer_id||0)];
+        var wColor=isMyWard?'#a855f7':'#f59e0b';
+        var wOp=isMyWard?0.7:0.5;
+        var min=Math.floor((we.timestamp||0)/60000);
+        wardHtml+='<circle cx="'+wx+'" cy="'+wy+'" r="4" fill="'+wColor+'" fill-opacity="'+wOp+'"><title>'+min+'m ward by '+(isMyWard?'ally':'enemy')+'</title></circle>';
+      }
+      wardHtml+='</svg><div class="km-legend"><span><span class="dot-kill" style="background:#a855f7;"></span> Allied wards ('+wardEvents.filter(function(w){return myTeamIds[String(w.creator_id||w.killer_id||0)];}).length+')</span><span><span class="dot-death" style="background:#f59e0b;"></span> Enemy wards ('+wardEvents.filter(function(w){return !myTeamIds[String(w.creator_id||w.killer_id||0)];}).length+')</span></div></div>';
+    }
+
+    // ── #6 Death Analysis ──
+    var deathAnalysis=classifyDeaths(evts, pTeam, myTeamIds);
+    var deathHtml='';
+    if (deathAnalysis.total>0) {
+      deathHtml='<div style="padding:12px;"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Death Analysis (Allied Team)</div>';
+      deathHtml+='<div style="display:flex;gap:12px;flex-wrap:wrap;">';
+      if (deathAnalysis.solo>0) deathHtml+='<div style="text-align:center;"><div style="font-size:24px;font-weight:700;color:#ef4444;">'+deathAnalysis.solo+'</div><div class="death-tag dt-solo">Solo Deaths</div></div>';
+      if (deathAnalysis.gank>0) deathHtml+='<div style="text-align:center;"><div style="font-size:24px;font-weight:700;color:#f97316;">'+deathAnalysis.gank+'</div><div class="death-tag dt-gank">Ganks</div></div>';
+      if (deathAnalysis.teamfight>0) deathHtml+='<div style="text-align:center;"><div style="font-size:24px;font-weight:700;color:#3b82f6;">'+deathAnalysis.teamfight+'</div><div class="death-tag dt-teamfight">Teamfights</div></div>';
+      if (deathAnalysis.caught>0) deathHtml+='<div style="text-align:center;"><div style="font-size:24px;font-weight:700;color:#a855f7;">'+deathAnalysis.caught+'</div><div class="death-tag dt-caught">Caught Out</div></div>';
+      deathHtml+='</div>';
+      // Advice based on death patterns
+      var deathTip='';
+      if (deathAnalysis.caught>deathAnalysis.total*0.3) deathTip='Many deaths from being caught out — improve map awareness and positioning.';
+      else if (deathAnalysis.solo>deathAnalysis.total*0.4) deathTip='Lots of solo deaths — avoid taking unfavorable 1v1 fights.';
+      else if (deathAnalysis.gank>deathAnalysis.total*0.3) deathTip='Frequently ganked — ward more and track enemy jungler.';
+      if (deathTip) deathHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);font-style:italic;">'+deathTip+'</div>';
+      deathHtml+='</div>';
+    }
+
     // ── Assemble with tabs ──
     var hasKillMap=killEvents.length>0;
     var hasGold=goldHtml.length>0;
+    var hasWards=wardEvents.length>0;
+    var hasDeaths=deathAnalysis.total>0;
 
     var html='<div class="tl-container"><div class="tl-tabs">';
     html+='<div class="tl-tab active" data-tl-panel="'+uid+'-events">Events</div>';
     if (hasKillMap) html+='<div class="tl-tab" data-tl-panel="'+uid+'-killmap">Kill Map</div>';
     if (hasGold) html+='<div class="tl-tab" data-tl-panel="'+uid+'-gold">Gold Graph</div>';
+    if (hasWards) html+='<div class="tl-tab" data-tl-panel="'+uid+'-wards">Ward Map</div>';
+    if (hasDeaths) html+='<div class="tl-tab" data-tl-panel="'+uid+'-deaths">Deaths</div>';
     html+='</div>';
     html+='<div class="tl-panel active" id="'+uid+'-events">'+evtHtml+'</div>';
     if (hasKillMap) html+='<div class="tl-panel" id="'+uid+'-killmap">'+killMapHtml+'</div>';
     if (hasGold) html+='<div class="tl-panel" id="'+uid+'-gold">'+goldHtml+'</div>';
+    if (hasWards) html+='<div class="tl-panel" id="'+uid+'-wards">'+wardHtml+'</div>';
+    if (hasDeaths) html+='<div class="tl-panel" id="'+uid+'-deaths">'+deathHtml+'</div>';
     html+='</div>';
     container.innerHTML=html;
 
@@ -2431,12 +2986,21 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         var hasHeatmap=allMatches.length>0;
         var hasW4=(data.queue_breakdown&&data.queue_breakdown.length>0)||(data.role_distribution&&data.role_distribution.length>0)||(data.surrender_stats&&data.surrender_stats.total_games)||(data.time_analysis&&data.time_analysis.by_hour&&data.time_analysis.by_hour.length>0);
         var hasW5=(data.peer_percentiles&&data.peer_percentiles.sample_size)||(data.vision_trend&&data.vision_trend.length>0)||(data.early_game&&data.early_game.total_games);
-        if (!hasDuo&&!hasWr&&!hasLp&&!hasHeatmap&&!hasW4&&!hasW5) { section.classList.remove('visible'); return; }
+        // Always show extended stats section — empty cards now show smart placeholders
         section.classList.add('visible');
+
+        // Helper: show empty state with progress hint
+        function showEmptyState(el, title, hint) {
+          el.className='ext-card empty-state';
+          el.innerHTML='<div class="ext-title">'+title+'</div><div class="empty-hint">'+hint+'</div>';
+          el.style.display='';
+        }
+        function resetExtCard(el) { el.className='ext-card'; el.style.display=''; }
 
         // Duo Partners
         var duoEl=document.getElementById('ext-duo');
         if (hasDuo) {
+          duoEl.className='ext-card';
           var html='<div class="ext-title">Duo Partners</div>';
           for (var i=0;i<Math.min(data.duo_partners.length,8);i++) {
             var d=data.duo_partners[i], wr=d.games_together>0?Math.round(d.wins_together/d.games_together*100):0;
@@ -2445,7 +3009,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           }
           duoEl.innerHTML=html;
         } else {
-          duoEl.innerHTML='<div class="ext-title">Duo Partners</div><div class="muted" style="font-size:12px;">Not enough data</div>';
+          showEmptyState(duoEl, 'Duo Partners', 'Play with friends to see duo stats');
         }
 
         // WR History Chart
@@ -2463,9 +3027,10 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           }
           barsHtml+='</div>';
           var labels='<div class="wr-chart-labels"><span>'+(days[0]?days[0].day:'')+'</span><span>'+(days[days.length-1]?days[days.length-1].day:'')+'</span></div>';
+          resetExtCard(wrEl);
           wrEl.innerHTML='<div class="ext-title">Win Rate (Last 30 Days)</div>'+barsHtml+labels;
         } else {
-          wrEl.innerHTML='<div class="ext-title">Win Rate History</div><div class="muted" style="font-size:12px;">Not enough data</div>';
+          showEmptyState(wrEl, 'Win Rate History', 'Play games over multiple days to see trends');
         }
 
         // Day-of-Week Win Rate (#12)
@@ -2489,10 +3054,10 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             dowHtml+='<div class="dow-cell"><div class="dow-cell-day">'+DAY_SHORT[di]+'</div><div class="dow-cell-wr" style="color:'+dClr+'">'+(ds.games>0?dWr+'%':'—')+'</div><div class="dow-cell-games">'+ds.games+'G</div></div>';
           }
           dowHtml+='</div>';
+          resetExtCard(dowEl);
           dowEl.innerHTML=dowHtml;
-          dowEl.style.display='';
         } else {
-          dowEl.style.display='none';
+          showEmptyState(dowEl, 'Win Rate by Day', 'Play on different days to unlock');
         }
 
         // Streak Timeline (#17)
@@ -2515,10 +3080,10 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           stHtml+='<span style="color:var(--green);">Best: '+longestW+'W</span>';
           stHtml+='<span style="color:var(--red);">Worst: '+longestL+'L</span>';
           stHtml+='</div>';
+          resetExtCard(stEl);
           stEl.innerHTML=stHtml;
-          stEl.style.display='';
         } else {
-          stEl.style.display='none';
+          showEmptyState(stEl, 'Win/Loss Timeline', 'Play matches to see streaks');
         }
 
         // Activity Heatmap
@@ -2566,10 +3131,12 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             }
           }
           hmHtml+='</div>';
+          resetExtCard(hmEl);
           hmEl.innerHTML=hmHtml;
-          hmEl.style.display='';
+          hmEl.style.cssText='grid-column:1/-1;';
         } else {
-          hmEl.style.display='none';
+          showEmptyState(hmEl, 'Activity Heatmap', 'Play matches to build your activity map');
+          hmEl.style.cssText='grid-column:1/-1;';
         }
 
         // LP History Chart
@@ -2644,10 +3211,12 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 
           lpSvg+='</svg></div>';
           var lpLabels='<div class="lp-line-labels"><span>'+lpLabel(lpEntries[0])+'</span><span>'+lpLabel(lpEntries[lpEntries.length-1])+'</span></div>';
+          resetExtCard(lpEl);
           lpEl.innerHTML='<div class="ext-title">LP History — '+esc(lpQueueName)+'</div>'+lpSvg+lpLabels;
-          lpEl.style.display='';
+          lpEl.style.cssText='grid-column:1/-1;';
         } else {
-          lpEl.style.display='none';
+          showEmptyState(lpEl, 'LP History', 'Play ranked games to track LP over time');
+          lpEl.style.cssText='grid-column:1/-1;';
         }
 
         // ── LP Velocity (#new) ──────────────────────────
@@ -2661,9 +3230,9 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             +'<div class="vel-row"><span class="vel-value" style="color:'+vColor+'">'+(v.lp_per_day>0?'+':'')+v.lp_per_day+' LP/day</span>'
             +'<span class="vel-trend" style="color:'+vColor+'">'+trendIcon+' '+v.trend+'</span></div>'
             +predHtml;
-          velEl.style.display='';
+          resetExtCard(velEl);
         } else if (velEl) {
-          velEl.style.display='none';
+          showEmptyState(velEl, 'LP Velocity', 'Need ranked history to compute');
         }
 
         // ── Personal Enemies (#new) ─────────────────────
@@ -2681,9 +3250,9 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             +'</div>';
           }
           enemyEl.innerHTML=eHtml;
-          enemyEl.style.display='';
+          resetExtCard(enemyEl);
         } else if (enemyEl) {
-          enemyEl.style.display='none';
+          showEmptyState(enemyEl, 'Personal Enemies', 'Play 2+ games vs same champion');
         }
 
         // ── Records (#11) ────────────────────────────────
@@ -2699,8 +3268,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             rHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span>'+label+'</span><span><strong>'+val+'</strong>'+(rec.champion_name?' <span class="muted">'+esc(rec.champion_name)+'</span>':'')+'</span></div>';
           }
           recEl.innerHTML=rHtml;
-          recEl.style.display='';
-        } else if (recEl) { recEl.style.display='none'; }
+          resetExtCard(recEl);
+        } else if (recEl) { showEmptyState(recEl, 'Personal Records', 'Records tracked after matches'); }
 
         // ── Season History (#6) ──────────────────────────
         var shEl=document.getElementById('ext-season-history');
@@ -2714,8 +3283,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             shHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span>'+esc(sh.season)+' <span class="muted">'+qName+'</span></span><span style="color:'+clr+'">'+esc(sh.peak_tier||'')+' '+esc(sh.peak_rank||'')+' '+(sh.peak_lp||0)+' LP</span></div>';
           }
           shEl.innerHTML=shHtml;
-          shEl.style.display='';
-        } else if (shEl) { shEl.style.display='none'; }
+          resetExtCard(shEl);
+        } else if (shEl) { showEmptyState(shEl, 'Season History', 'Ranked data builds over seasons'); }
 
         // ── Session Summary (#3) ─────────────────────────
         var sessEl=document.getElementById('ext-session-summary');
@@ -2743,8 +3312,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           // Daily tip
           if (data.tip) sessHtml+='<div style="margin-top:8px;padding:8px;background:rgba(200,155,60,0.08);border-radius:6px;font-size:11px;color:var(--gold);">'+esc(data.tip)+'</div>';
           sessEl.innerHTML=sessHtml;
-          sessEl.style.display='';
-        } else if (sessEl) { sessEl.style.display='none'; }
+          resetExtCard(sessEl);
+        } else if (sessEl) { showEmptyState(sessEl, "Today's Session", 'No games played today yet'); }
 
         // Comeback Rate / Throw Rate (computed from allMatches fields)
         var cbEl=document.getElementById('ext-comeback');
@@ -2775,12 +3344,12 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
                 '<div><div class="cb-label" style="color:var(--red)">Throw Rate</div><div class="cb-sub">Lost while ahead</div></div>'+
                 '<div style="text-align:right"><div class="cb-value" style="color:var(--red)">'+throwRate+'%</div><div class="cb-sub">'+throws+' of '+allMatches.length+' games</div></div>'+
               '</div>';
-            cbEl.style.display='';
+            resetExtCard(cbEl);
           } else {
             cbEl.style.display='none';
           }
         } else if (cbEl) {
-          cbEl.style.display='none';
+          showEmptyState(cbEl, 'Mental Fortitude', 'Need 5+ games with lead data');
         }
 
         // ── Wave 4: Queue Breakdown ──────────────────────
@@ -2799,54 +3368,16 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
               +'</span></div>';
           }
           qbEl.innerHTML=qbHtml;
-          qbEl.style.display='';
-        } else if (qbEl) { qbEl.style.display='none'; }
+          resetExtCard(qbEl);
+        } else if (qbEl) { showEmptyState(qbEl, 'Queue Breakdown', 'Play different queues to compare'); }
 
-        // ── Wave 4: Role Distribution ────────────────────
+        // Role Distribution — deduplicated (data shown in Roles tab)
         var rdEl=document.getElementById('ext-role-dist');
-        if (rdEl&&data.role_distribution&&data.role_distribution.length>0) {
-          var rdHtml='<div class="ext-title">Role Distribution</div><div style="display:flex;gap:6px;flex-wrap:wrap;">';
-          var roleIcons={TOP:'⬆',JUNGLE:'🌲',MIDDLE:'🔮',BOTTOM:'🏹',UTILITY:'🛡'};
-          for (var ri=0;ri<data.role_distribution.length;ri++) {
-            var rd=data.role_distribution[ri];
-            var rWr=tonumberOrZero(rd.winrate);
-            var rClr=rWr>=50?'var(--green)':'var(--red)';
-            var posName=rd.position==='UTILITY'?'SUP':rd.position==='BOTTOM'?'ADC':rd.position==='MIDDLE'?'MID':(rd.position||'?');
-            var icon=roleIcons[rd.position]||'';
-            rdHtml+='<div style="background:var(--card-bg);padding:6px 10px;border-radius:6px;text-align:center;min-width:60px;">'
-              +'<div style="font-size:14px;">'+icon+'</div>'
-              +'<div style="font-size:11px;font-weight:600;">'+posName+'</div>'
-              +'<div style="font-size:12px;">'+rd.games+'G</div>'
-              +'<div style="font-size:11px;color:'+rClr+'">'+rWr+'%</div>'
-              +'</div>';
-          }
-          rdHtml+='</div>';
-          rdEl.innerHTML=rdHtml;
-          rdEl.style.display='';
-        } else if (rdEl) { rdEl.style.display='none'; }
+        if (rdEl) rdEl.style.display='none';
 
-        // ── Wave 4: Damage Profile ───────────────────────
+        // Damage Profile — deduplicated (damage bar shown in Overview tab)
         var dpEl=document.getElementById('ext-damage-profile');
-        if (dpEl&&data.damage_profile&&data.damage_profile.avg_damage_dealt) {
-          var dp=data.damage_profile;
-          var phys=tonumberOrZero(dp.avg_physical_pct);
-          var magic=tonumberOrZero(dp.avg_magic_pct);
-          var trueDmg=tonumberOrZero(dp.avg_true_pct);
-          var dpHtml='<div class="ext-title">Damage Profile</div>';
-          dpHtml+='<div style="height:14px;border-radius:7px;overflow:hidden;display:flex;margin-bottom:6px;">';
-          dpHtml+='<div style="width:'+phys+'%;background:#e74c3c;" title="Physical '+phys.toFixed(1)+'%"></div>';
-          dpHtml+='<div style="width:'+magic+'%;background:#3498db;" title="Magic '+magic.toFixed(1)+'%"></div>';
-          dpHtml+='<div style="width:'+trueDmg+'%;background:#f1f1f1;" title="True '+trueDmg.toFixed(1)+'%"></div>';
-          dpHtml+='</div>';
-          dpHtml+='<div style="display:flex;justify-content:space-between;font-size:11px;">';
-          dpHtml+='<span style="color:#e74c3c;">Physical '+phys.toFixed(0)+'%</span>';
-          dpHtml+='<span style="color:#3498db;">Magic '+magic.toFixed(0)+'%</span>';
-          dpHtml+='<span style="color:#ccc;">True '+trueDmg.toFixed(0)+'%</span>';
-          dpHtml+='</div>';
-          dpHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">Avg dealt: '+fmtNumber(tonumberOrZero(dp.avg_damage_dealt))+' · Avg taken: '+fmtNumber(tonumberOrZero(dp.avg_damage_taken))+'</div>';
-          dpEl.innerHTML=dpHtml;
-          dpEl.style.display='';
-        } else if (dpEl) { dpEl.style.display='none'; }
+        if (dpEl) dpEl.style.display='none';
 
         // ── Wave 4: Duration Analysis ────────────────────
         var daEl=document.getElementById('ext-duration-analysis');
@@ -2866,8 +3397,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
               +'</div>';
           }
           daEl.innerHTML=daHtml;
-          daEl.style.display='';
-        } else if (daEl) { daEl.style.display='none'; }
+          resetExtCard(daEl);
+        } else if (daEl) { showEmptyState(daEl, 'Duration Analysis', 'Play games of varied lengths'); }
 
         // ── Wave 4: Best Time to Play ────────────────────
         var btEl=document.getElementById('ext-best-time');
@@ -2897,8 +3428,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           btHtml+='</div>';
           btHtml+='<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:2px;"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>';
           btEl.innerHTML=btHtml;
-          btEl.style.display='';
-        } else if (btEl) { btEl.style.display='none'; }
+          resetExtCard(btEl);
+        } else if (btEl) { showEmptyState(btEl, 'Best Time to Play', 'Need games at different hours'); }
 
         // ── Wave 4: Surrender Stats ──────────────────────
         var ssEl=document.getElementById('ext-surrender-stats');
@@ -2911,8 +3442,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           if (tonumberOrZero(ss.remakes)>0) ssHtml+='<div><span class="muted">Remakes</span> <strong>'+ss.remakes+'</strong></div>';
           ssHtml+='</div>';
           ssEl.innerHTML=ssHtml;
-          ssEl.style.display='';
-        } else if (ssEl) { ssEl.style.display='none'; }
+          resetExtCard(ssEl);
+        } else if (ssEl) { showEmptyState(ssEl, 'Game Outcomes', 'Need match data'); }
 
         // ── Wave 4: Spell Analysis ───────────────────────
         var spEl=document.getElementById('ext-spell-analysis');
@@ -2928,8 +3459,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
               +'</div>';
           }
           spEl.innerHTML=spHtml;
-          spEl.style.display='';
-        } else if (spEl) { spEl.style.display='none'; }
+          resetExtCard(spEl);
+        } else if (spEl) { showEmptyState(spEl, 'Summoner Spells', 'Need match data for spell stats'); }
 
         // ── Wave 5: Vision Trend ─────────────────────────
         var vtEl=document.getElementById('ext-vision-trend');
@@ -2953,8 +3484,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           avgVs=Math.round(avgVs/vt.length);avgWp=Math.round(avgWp/vt.length*10)/10;avgCw=Math.round(avgCw/vt.length*10)/10;
           vtHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">Avg VS: '+avgVs+' · Wards/g: '+avgWp+' · CW/g: '+avgCw+'</div>';
           vtEl.innerHTML=vtHtml;
-          vtEl.style.display='';
-        } else if (vtEl) { vtEl.style.display='none'; }
+          resetExtCard(vtEl);
+        } else if (vtEl) { showEmptyState(vtEl, 'Vision Trend', 'Play games to track vision improvement'); }
 
         // ── Wave 5: Peer Percentiles ─────────────────────
         var ppEl=document.getElementById('ext-peer-percentiles');
@@ -2980,8 +3511,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
               +'</div>';
           }
           ppEl.innerHTML=ppHtml;
-          ppEl.style.display='';
-        } else if (ppEl) { ppEl.style.display='none'; }
+          resetExtCard(ppEl);
+        } else if (ppEl) { showEmptyState(ppEl, 'Peer Comparison', 'Need multiple tracked players'); }
 
         // ── Wave 5: Early Game Stats ─────────────────────
         var egEl=document.getElementById('ext-early-game');
@@ -3004,8 +3535,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           }
           egHtml+='</div>';
           egEl.innerHTML=egHtml;
-          egEl.style.display='';
-        } else if (egEl) { egEl.style.display='none'; }
+          resetExtCard(egEl);
+        } else if (egEl) { showEmptyState(egEl, 'Early Game Stats', 'Need timeline data from matches'); }
 
         // ── Wave 6: Objective Stats ──────────────────────
         var objEl=document.getElementById('ext-objectives');
@@ -3033,8 +3564,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
             objHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">First Blood win rate: <strong style="color:'+(fbConv>=60?'var(--green)':'var(--red)')+'">'+fbConv+'%</strong> ('+fbs+' FBs)</div>';
           }
           objEl.innerHTML=objHtml;
-          objEl.style.display='';
-        } else if (objEl) { objEl.style.display='none'; }
+          resetExtCard(objEl);
+        } else if (objEl) { showEmptyState(objEl, 'Objective Control', 'Need match data with objectives'); }
 
         // ── Quick Win: Tilt Probability Score ─────────────
         var tiltEl=document.getElementById('ext-tilt-score');
@@ -3053,8 +3584,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           tHtml+='<div class="tilt-meter"><div class="tilt-bar"><div class="tilt-bar-fill" style="width:'+score+'%;background:'+tClr+';"></div></div>';
           tHtml+='<div class="tilt-label"><span>Zen</span><span>Tilt</span></div></div>';
           tiltEl.innerHTML=tHtml;
-          tiltEl.style.display='';
-        } else if (tiltEl) { tiltEl.style.display='none'; }
+          resetExtCard(tiltEl);
+        } else if (tiltEl) { showEmptyState(tiltEl, 'Tilt Probability', 'Need recent game data'); }
 
         // ── Quick Win: Playstyle Clustering ────────────────
         var psEl=document.getElementById('ext-playstyle');
@@ -3064,8 +3595,57 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           var icon=iconMap[ps.icon]||'🎮';
           psEl.innerHTML='<div class="ext-title">Playstyle</div>'
             +'<div class="playstyle-badge"><span class="playstyle-icon">'+icon+'</span><div><div class="playstyle-name">'+esc(ps.archetype)+'</div><div class="playstyle-desc">'+esc(ps.description)+'</div></div></div>';
-          psEl.style.display='';
-        } else if (psEl) { psEl.style.display='none'; }
+          resetExtCard(psEl);
+        } else if (psEl) { showEmptyState(psEl, 'Playstyle', 'Need match data to determine style'); }
+
+        // ── #3 Meta Tracker ────────────────────────────────
+        var metaEl=document.getElementById('ext-meta-tracker');
+        if (metaEl&&allMatches.length>=5) {
+          var platform=document.getElementById('region-select').value||'EUW1';
+          fetch('/api/champions?queue=420&platform='+encodeURIComponent(platform))
+            .then(function(r){if(!r.ok)throw new Error('err');return r.json();})
+            .then(function(metaData){
+              var champs=metaData.champions||metaData||[];
+              if (!Array.isArray(champs)||champs.length===0) { showEmptyState(metaEl,'Meta Tracker','No global champion data available'); return; }
+              // Sort by pick rate, show top 12
+              champs.sort(function(a,b){return (b.pick_rate||0)-(a.pick_rate||0);});
+              var top=champs.slice(0,12);
+              var mHtml='<div class="ext-title">&#127757; Meta Tracker — Top Picks (Ranked Solo)</div><div class="meta-grid">';
+              for (var mi=0;mi<top.length;mi++) {
+                var mc=top[mi], mWr=mc.winrate||mc.win_rate||0;
+                var wrClr=mWr>=52?'var(--green)':mWr<48?'var(--red)':'var(--text)';
+                var imgHtml=mc.champion_image?'<img src="'+esc(mc.champion_image)+'" />':'';
+                mHtml+='<div class="meta-champ-card">'+imgHtml+'<div class="meta-champ-name">'+esc(mc.champion_name||mc.name||'?')+'</div><div class="meta-champ-wr" style="color:'+wrClr+'">'+mWr+'%</div><div class="meta-champ-sub">'+(mc.pick_rate||0)+'% pick &middot; '+(mc.ban_rate||0)+'% ban</div><div class="meta-champ-sub">'+(mc.games||0)+' games</div></div>';
+              }
+              mHtml+='</div>';
+              metaEl.innerHTML=mHtml;
+              resetExtCard(metaEl);
+            })
+            .catch(function(){ showEmptyState(metaEl,'Meta Tracker','Could not load meta data'); });
+        } else if (metaEl) { showEmptyState(metaEl, 'Meta Tracker', 'Play ranked games to see meta'); }
+
+        // ── #4 Opponent History ─────────────────────────────
+        var oppEl=document.getElementById('ext-opponent-history');
+        if (oppEl) {
+          var opps=computeOpponentHistory();
+          if (opps.length>0) {
+            var oHtml='<div class="ext-title">&#128101; Repeat Opponents</div>';
+            for (var oi=0;oi<opps.length;oi++) {
+              var op=opps[oi];
+              var oWr=op.games>0?Math.round(op.wins/op.games*100):0;
+              var oClr=oWr>=50?'var(--green)':'var(--red)';
+              var ago='';
+              if (op.lastSeen>0) { var minsAgo=Math.round((Date.now()-op.lastSeen)/60000); ago=minsAgo<60?minsAgo+'m ago':minsAgo<1440?Math.round(minsAgo/60)+'h ago':Math.round(minsAgo/1440)+'d ago'; }
+              oHtml+='<div class="opp-hist-row">'
+                +'<span class="opp-hist-name">'+esc(op.name)+' <span class="muted" style="font-size:10px;">'+esc(op.champs.slice(0,3).join(', '))+'</span></span>'
+                +'<span class="muted" style="font-size:10px;min-width:40px;">'+ago+'</span>'
+                +'<span class="opp-hist-record" style="color:'+oClr+'">'+op.wins+'W '+op.losses+'L</span>'
+                +'</div>';
+            }
+            oppEl.innerHTML=oHtml;
+            resetExtCard(oppEl);
+          } else { showEmptyState(oppEl, 'Repeat Opponents', 'Face the same player 2+ times'); }
+        }
       })
       .catch(function(){ section.classList.remove('visible'); });
   }
@@ -3275,7 +3855,19 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         +'<button class="pg-btn" onclick="event.stopPropagation();copyMatchResult(\''+esc(m.match_id)+'\',\''+esc(m.champion_name)+'\','+k+','+d+','+a+','+(m.win?1:0)+')">Copy Result</button>'
         +'<button class="pg-btn" onclick="event.stopPropagation();shareMatchUrl(\''+esc(m.match_id)+'\')">Share Link</button>'
         +'</div>';
-      detailTd.innerHTML='<div class="match-detail"><div class="team-block"><div class="team-label ally">'+(m.win?'Victory':'Defeat')+' — Allied Team</div>'+renderTeamPlayers(m.allies||[])+'</div><div class="team-block"><div class="team-label enemy">'+(!m.win?'Victory':'Defeat')+' — Enemy Team</div>'+renderTeamPlayers(m.enemies||[])+'</div></div>'+tcaHtml+noteHtml+pgActions+'<div style="padding:8px 20px;border-top:1px solid var(--border);"><button class="tl-btn" id="'+tlBtnId+'">&#9201; Show Timeline</button><div id="'+tlContainerId+'"></div></div>';
+      // Post-Game Report Card
+      var pgReport='<div style="padding:10px 20px;border-bottom:1px solid var(--border);display:flex;gap:16px;flex-wrap:wrap;align-items:center;">';
+      pgReport+='<div style="text-align:center;"><div style="font-size:28px;font-weight:800;color:'+(m.win?'var(--green)':'var(--red)')+';">'+(m.win?'Victory':'Defeat')+'</div><div style="font-size:11px;color:var(--text-muted);">'+esc(m.game_duration||'')+'</div></div>';
+      pgReport+='<div style="flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;font-size:12px;text-align:center;">';
+      pgReport+='<div><div style="font-size:16px;font-weight:700;">'+k+'/'+d+'/'+a+'</div><div class="muted">KDA</div></div>';
+      pgReport+='<div><div style="font-size:16px;font-weight:700;"><span class="perf-score '+scoreClass(mScore)+'">'+mScore.toFixed(1)+'</span></div><div class="muted">Score</div></div>';
+      pgReport+='<div><div style="font-size:16px;font-weight:700;">'+(m.cs||0)+'</div><div class="muted">CS ('+(m.cs_per_min||0)+'/m)</div></div>';
+      pgReport+='<div><div style="font-size:16px;font-weight:700;">'+fmtNumber(m.total_damage)+'</div><div class="muted">Damage</div></div>';
+      pgReport+='<div><div style="font-size:16px;font-weight:700;">'+(m.vision_score||0)+'</div><div class="muted">Vision</div></div>';
+      if (m.kill_participation>0) pgReport+='<div><div style="font-size:16px;font-weight:700;">'+Math.round(m.kill_participation*100)+'%</div><div class="muted">KP</div></div>';
+      pgReport+='</div></div>';
+
+      detailTd.innerHTML=pgReport+'<div class="match-detail"><div class="team-block"><div class="team-label ally">'+(m.win?'Victory':'Defeat')+' — Allied Team</div>'+renderTeamPlayers(m.allies||[])+'</div><div class="team-block"><div class="team-label enemy">'+(!m.win?'Victory':'Defeat')+' — Enemy Team</div>'+renderTeamPlayers(m.enemies||[])+'</div></div>'+tcaHtml+noteHtml+pgActions+'<div style="padding:8px 20px;border-top:1px solid var(--border);"><button class="tl-btn" id="'+tlBtnId+'">&#9201; Show Timeline</button><div id="'+tlContainerId+'"></div></div>';
       detailTr.appendChild(detailTd); tbody.appendChild(detailTr);
 
       (function(row,detail,matchId,btnId,containerId,matchData){
@@ -3955,11 +4547,62 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       .catch(function(){});
   }
 
+  // ── Win Probability (post-draft estimate) ──────────
+  function computeWinProbability(lg) {
+    if (!lg||!lg.participants||lg.participants.length<6) return null;
+    // Simple model based on: team avg rank, champion WR, streaks, mastery
+    var blueScore=0,redScore=0,blueCount=0,redCount=0;
+    var tierVal={'IRON':1,'BRONZE':2,'SILVER':3,'GOLD':4,'PLATINUM':5,'EMERALD':6,'DIAMOND':7,'MASTER':8,'GRANDMASTER':9,'CHALLENGER':10};
+    for (var i=0;i<lg.participants.length;i++) {
+      var p=lg.participants[i];
+      var score=50; // base
+      if (p.ranked&&p.ranked.tier) score+=(tierVal[p.ranked.tier]||3)*3;
+      if (p.champion_wr) score+=(p.champion_wr-50)*0.3;
+      if (p.streak&&p.streak>0) score+=Math.min(p.streak*2,10);
+      if (p.streak&&p.streak<0) score+=Math.max(p.streak*2,-10);
+      if (p.mastery_level&&p.mastery_level>=7) score+=3;
+      if (p.team_id===100) { blueScore+=score; blueCount++; }
+      else { redScore+=score; redCount++; }
+    }
+    if (blueCount===0||redCount===0) return null;
+    var blueAvg=blueScore/blueCount, redAvg=redScore/redCount;
+    var diff=blueAvg-redAvg;
+    // Sigmoid-like: map diff to 35-65% range
+    var blueWinPct=Math.round(50+diff*0.8);
+    blueWinPct=Math.max(35,Math.min(65,blueWinPct));
+    return {blue:blueWinPct,red:100-blueWinPct};
+  }
+
   // Auto-load briefing when live game is detected
   var _origRenderLiveGame=renderLiveGame;
   renderLiveGame=function(lg) {
     _origRenderLiveGame(lg);
-    if (lg) setTimeout(loadBriefing, 500);
+    if (lg) {
+      setTimeout(loadBriefing, 500);
+      // Win Probability
+      var wp=computeWinProbability(lg);
+      if (wp) {
+        var banner=document.getElementById('live-game-banner');
+        var wpEl=document.getElementById('live-win-prob');
+        if (!wpEl) {
+          wpEl=document.createElement('div');
+          wpEl.id='live-win-prob';
+          wpEl.style.cssText='margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:12px;';
+          banner.appendChild(wpEl);
+        }
+        var blueClr=wp.blue>50?'var(--green)':wp.blue<50?'var(--red)':'var(--text-muted)';
+        var redClr=wp.red>50?'var(--green)':wp.red<50?'var(--red)':'var(--text-muted)';
+        wpEl.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+          +'<span style="color:var(--blue);font-weight:600;">Blue '+wp.blue+'%</span>'
+          +'<span style="font-size:10px;color:var(--text-muted);">Win Probability (estimate)</span>'
+          +'<span style="color:var(--red);font-weight:600;">Red '+wp.red+'%</span>'
+          +'</div>'
+          +'<div style="height:8px;border-radius:4px;overflow:hidden;display:flex;">'
+          +'<div style="width:'+wp.blue+'%;background:var(--blue);"></div>'
+          +'<div style="width:'+wp.red+'%;background:var(--red);"></div>'
+          +'</div>';
+      }
+    }
   };
 
   // (Quick Win code is inside the IIFE above)

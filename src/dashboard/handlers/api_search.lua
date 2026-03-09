@@ -195,38 +195,38 @@ local function build_match_entry(mid, match_data, puuid, champions)
         solo_kills = challenges.soloKills or 0,
         turret_plates = challenges.turretPlatesTaken or 0,
         dragon_takedowns = (challenges.dragonTakedowns or 0) > 0 and (challenges.dragonTakedowns or 0)
-            or (function()
-                if info and info.teams then
-                    for _, team in ipairs(info.teams) do
-                        if team.teamId == participant.teamId and team.objectives and team.objectives.dragon then
-                            return team.objectives.dragon.kills or 0
-                        end
+                or (function()
+            if info and info.teams then
+                for _, team in ipairs(info.teams) do
+                    if team.teamId == participant.teamId and team.objectives and team.objectives.dragon then
+                        return team.objectives.dragon.kills or 0
                     end
                 end
-                return 0
-            end)(),
+            end
+            return 0
+        end)(),
         baron_takedowns = (challenges.baronTakedowns or 0) > 0 and (challenges.baronTakedowns or 0)
-            or (function()
-                if info and info.teams then
-                    for _, team in ipairs(info.teams) do
-                        if team.teamId == participant.teamId and team.objectives and team.objectives.baron then
-                            return team.objectives.baron.kills or 0
-                        end
+                or (function()
+            if info and info.teams then
+                for _, team in ipairs(info.teams) do
+                    if team.teamId == participant.teamId and team.objectives and team.objectives.baron then
+                        return team.objectives.baron.kills or 0
                     end
                 end
-                return 0
-            end)(),
+            end
+            return 0
+        end)(),
         rift_herald_takedowns = (challenges.riftHeraldTakedowns or 0) > 0 and (challenges.riftHeraldTakedowns or 0)
-            or (function()
-                if info and info.teams then
-                    for _, team in ipairs(info.teams) do
-                        if team.teamId == participant.teamId and team.objectives and team.objectives.riftHerald then
-                            return team.objectives.riftHerald.kills or 0
-                        end
+                or (function()
+            if info and info.teams then
+                for _, team in ipairs(info.teams) do
+                    if team.teamId == participant.teamId and team.objectives and team.objectives.riftHerald then
+                        return team.objectives.riftHerald.kills or 0
                     end
                 end
-                return 0
-            end)(),
+            end
+            return 0
+        end)(),
         vision_per_min = challenges.visionScorePerMinute or 0,
         lane_minions_first10 = challenges.laneMinionsFirst10Minutes or 0,
         max_cs_advantage = challenges.maxCsAdvantageOnLaneOpponent or 0,
@@ -683,8 +683,6 @@ local function handler()
                 end
             end
         end
-
-        end
     end
 
     -- Build final ordered list: all collected matches sorted by game_creation DESC, limit 30
@@ -705,7 +703,7 @@ local function handler()
     local profile_icon_url = nil
     if summoner and summoner.profileIconId then
         profile_icon_url = "https://ddragon.leagueoflegends.com/cdn/" .. dd_version
-            .. "/img/profileicon/" .. tostring(summoner.profileIconId) .. ".png"
+                .. "/img/profileicon/" .. tostring(summoner.profileIconId) .. ".png"
     end
 
     -- ── Challenge summary ─────────────────────────────────────
@@ -940,9 +938,9 @@ local function handler()
             local cn = m.champion_name or "Unknown"
             if not champ_stats[cn] then
                 champ_stats[cn] = {wins = 0, losses = 0, kills = 0, deaths = 0, assists = 0, games = 0, image = m.champion_image,
-                    total_cs_min = 0, total_damage = 0, total_gold = 0, total_vision = 0, total_kp = 0, total_ds = 0,
-                    total_phys = 0, total_magic = 0, total_true = 0,
-                    positions = {}, keystones = {}, keystone_wins = {}}
+                                   total_cs_min = 0, total_damage = 0, total_gold = 0, total_vision = 0, total_kp = 0, total_ds = 0,
+                                   total_phys = 0, total_magic = 0, total_true = 0,
+                                   positions = {}, keystones = {}, keystone_wins = {}}
             end
             local cs = champ_stats[cn]
             cs.games = cs.games + 1
@@ -980,7 +978,7 @@ local function handler()
                         local lk = e.champion_name
                         if not lane_matchups[lk] then
                             lane_matchups[lk] = {games = 0, wins = 0, image = e.champion_image,
-                                my_kills = 0, my_deaths = 0, opp_kills = 0, opp_deaths = 0}
+                                                 my_kills = 0, my_deaths = 0, opp_kills = 0, opp_deaths = 0}
                         end
                         lane_matchups[lk].games = (lane_matchups[lk].games or 0) + 1
                         if m.win then lane_matchups[lk].wins = (lane_matchups[lk].wins or 0) + 1 end
@@ -1062,8 +1060,8 @@ local function handler()
                 wins = cs.wins,
                 losses = cs.losses,
                 avg_kda = cs.deaths > 0
-                    and math.floor((cs.kills + cs.assists) / cs.deaths * 10) / 10
-                    or 0,
+                        and math.floor((cs.kills + cs.assists) / cs.deaths * 10) / 10
+                        or 0,
                 avg_kills = math.floor(cs.kills / cs.games * 10) / 10,
                 avg_deaths = math.floor(cs.deaths / cs.games * 10) / 10,
                 avg_assists = math.floor(cs.assists / cs.games * 10) / 10,

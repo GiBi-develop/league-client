@@ -104,6 +104,62 @@ entries:
         description: Get peak LP (best-ever rank) per queue
       - name: get_recent_avg_stats
         description: Get average stats from recent matches
+      - name: get_personal_enemies
+        description: Get enemy champions with worst personal win rate
+      - name: save_api_metric
+        description: Save an API call metric for monitoring
+      - name: get_api_metrics_summary
+        description: Get API metrics summary for last hour
+      - name: get_player_freshness
+        description: Get data freshness for all tracked players
+      - name: save_record
+        description: Save or update a personal record if new best
+      - name: get_records
+        description: Get all personal records for a player
+      - name: get_season_history
+        description: Get ranked history aggregated by season
+      - name: get_match_recap
+        description: Get template-based text recap for a match
+      - name: compute_performance_score
+        description: Compute 0-100 performance score for a match
+      - name: save_timeline_stats
+        description: Save parsed match timeline stats
+      - name: get_timeline_stats
+        description: Get timeline stats for player matches
+      - name: get_role_distribution
+        description: Get games and win rate per role/position
+      - name: get_damage_profile
+        description: Get average damage composition breakdown
+      - name: get_duration_analysis
+        description: Get win rate by game duration buckets
+      - name: get_time_analysis
+        description: Get win rate by hour and day of week
+      - name: get_surrender_stats
+        description: Get surrender rate, remake count, first blood rate
+      - name: get_queue_breakdown
+        description: Get per-queue stats breakdown
+      - name: get_spell_analysis
+        description: Get summoner spell combo win rates
+      - name: update_match_lp
+        description: Update LP change for a specific match
+      - name: get_champion_matchups
+        description: Get per-champion matchup win rates for a player
+      - name: get_champion_global_stats
+        description: Get global champion stats aggregated from all matches
+      - name: get_vision_trend
+        description: Get vision score trend over recent matches
+      - name: get_peer_percentiles
+        description: Get stat percentiles compared to other tracked players
+      - name: get_early_game_stats
+        description: Get early game averages from timeline data
+      - name: get_champion_builds
+        description: Get aggregated rune and spell builds for a champion
+      - name: get_objective_stats
+        description: Get objective control averages (dragons, barons, heralds)
+      - name: get_tilt_score
+        description: Compute tilt probability score from recent matches
+      - name: search_players
+        description: Search cached players by name for autocomplete
 
   - name: players_init_schema
     kind: function.lua
@@ -375,6 +431,174 @@ entries:
     method: get_recent_avg_stats
     modules: [sql]
 
+  - name: players_get_personal_enemies
+    kind: function.lua
+    source: file://players.lua
+    method: get_personal_enemies
+    modules: [sql]
+
+  - name: players_save_api_metric
+    kind: function.lua
+    source: file://players.lua
+    method: save_api_metric
+    modules: [sql]
+
+  - name: players_get_api_metrics_summary
+    kind: function.lua
+    source: file://players.lua
+    method: get_api_metrics_summary
+    modules: [sql]
+
+  - name: players_get_player_freshness
+    kind: function.lua
+    source: file://players.lua
+    method: get_player_freshness
+    modules: [sql]
+
+  - name: players_save_record
+    kind: function.lua
+    source: file://players.lua
+    method: save_record
+    modules: [sql]
+
+  - name: players_get_records
+    kind: function.lua
+    source: file://players.lua
+    method: get_records
+    modules: [sql]
+
+  - name: players_get_season_history
+    kind: function.lua
+    source: file://players.lua
+    method: get_season_history
+    modules: [sql]
+
+  - name: players_get_match_recap
+    kind: function.lua
+    source: file://players.lua
+    method: get_match_recap
+    modules: [sql]
+
+  - name: players_compute_performance_score
+    kind: function.lua
+    source: file://players.lua
+    method: compute_performance_score
+    modules: [sql]
+
+  - name: players_save_timeline_stats
+    kind: function.lua
+    source: file://players.lua
+    method: save_timeline_stats
+    modules: [sql]
+
+  - name: players_get_timeline_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_timeline_stats
+    modules: [sql]
+
+  - name: players_get_role_distribution
+    kind: function.lua
+    source: file://players.lua
+    method: get_role_distribution
+    modules: [sql]
+
+  - name: players_get_damage_profile
+    kind: function.lua
+    source: file://players.lua
+    method: get_damage_profile
+    modules: [sql]
+
+  - name: players_get_duration_analysis
+    kind: function.lua
+    source: file://players.lua
+    method: get_duration_analysis
+    modules: [sql]
+
+  - name: players_get_time_analysis
+    kind: function.lua
+    source: file://players.lua
+    method: get_time_analysis
+    modules: [sql]
+
+  - name: players_get_surrender_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_surrender_stats
+    modules: [sql]
+
+  - name: players_get_queue_breakdown
+    kind: function.lua
+    source: file://players.lua
+    method: get_queue_breakdown
+    modules: [sql]
+
+  - name: players_get_spell_analysis
+    kind: function.lua
+    source: file://players.lua
+    method: get_spell_analysis
+    modules: [sql]
+
+  - name: players_update_match_lp
+    kind: function.lua
+    source: file://players.lua
+    method: update_match_lp
+    modules: [sql]
+
+  - name: players_get_champion_matchups
+    kind: function.lua
+    source: file://players.lua
+    method: get_champion_matchups
+    modules: [sql]
+
+  - name: players_get_champion_global_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_champion_global_stats
+    modules: [sql]
+
+  - name: players_get_vision_trend
+    kind: function.lua
+    source: file://players.lua
+    method: get_vision_trend
+    modules: [sql]
+
+  - name: players_get_peer_percentiles
+    kind: function.lua
+    source: file://players.lua
+    method: get_peer_percentiles
+    modules: [sql]
+
+  - name: players_get_early_game_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_early_game_stats
+    modules: [sql]
+
+  - name: players_get_champion_builds
+    kind: function.lua
+    source: file://players.lua
+    method: get_champion_builds
+    modules: [sql]
+
+  - name: players_get_objective_stats
+    kind: function.lua
+    source: file://players.lua
+    method: get_objective_stats
+    modules: [sql]
+
+  - name: players_get_tilt_score
+    kind: function.lua
+    source: file://players.lua
+    method: get_tilt_score
+    modules: [sql]
+
+  - name: players_search_players
+    kind: function.lua
+    source: file://players.lua
+    method: search_players
+    modules: [sql]
+
   - name: player_storage
     kind: contract.binding
     contracts:
@@ -426,3 +650,31 @@ entries:
           get_today_stats: app.lc.lib:players_get_today_stats
           get_peak_lp: app.lc.lib:players_get_peak_lp
           get_recent_avg_stats: app.lc.lib:players_get_recent_avg_stats
+          get_personal_enemies: app.lc.lib:players_get_personal_enemies
+          save_api_metric: app.lc.lib:players_save_api_metric
+          get_api_metrics_summary: app.lc.lib:players_get_api_metrics_summary
+          get_player_freshness: app.lc.lib:players_get_player_freshness
+          save_record: app.lc.lib:players_save_record
+          get_records: app.lc.lib:players_get_records
+          get_season_history: app.lc.lib:players_get_season_history
+          get_match_recap: app.lc.lib:players_get_match_recap
+          compute_performance_score: app.lc.lib:players_compute_performance_score
+          save_timeline_stats: app.lc.lib:players_save_timeline_stats
+          get_timeline_stats: app.lc.lib:players_get_timeline_stats
+          get_role_distribution: app.lc.lib:players_get_role_distribution
+          get_damage_profile: app.lc.lib:players_get_damage_profile
+          get_duration_analysis: app.lc.lib:players_get_duration_analysis
+          get_time_analysis: app.lc.lib:players_get_time_analysis
+          get_surrender_stats: app.lc.lib:players_get_surrender_stats
+          get_queue_breakdown: app.lc.lib:players_get_queue_breakdown
+          get_spell_analysis: app.lc.lib:players_get_spell_analysis
+          update_match_lp: app.lc.lib:players_update_match_lp
+          get_champion_matchups: app.lc.lib:players_get_champion_matchups
+          get_champion_global_stats: app.lc.lib:players_get_champion_global_stats
+          get_vision_trend: app.lc.lib:players_get_vision_trend
+          get_peer_percentiles: app.lc.lib:players_get_peer_percentiles
+          get_early_game_stats: app.lc.lib:players_get_early_game_stats
+          get_champion_builds: app.lc.lib:players_get_champion_builds
+          get_objective_stats: app.lc.lib:players_get_objective_stats
+          get_tilt_score: app.lc.lib:players_get_tilt_score
+          search_players: app.lc.lib:players_search_players

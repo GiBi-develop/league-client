@@ -24,8 +24,27 @@ local function secs_until_sunday_9am()
     return target_secs
 end
 
+--- Get weakness report: worst enemy champions and worst own champions this week.
+local function get_weakness_report(storage, puuid)
+    local enemies = storage:get_personal_enemies({puuid = puuid, min_games = 2, limit = 3}) or {}
+    local report = {enemy_champs = {}, kryptonite = ""}
+
+    for _, e in ipairs(enemies) do
+        local wr = tonumber(e.win_rate) or 0
+        if wr < 50 then
+            table.insert(report.enemy_champs, {
+                champ = tostring(e.enemy_champion or "?"),
+                games = tonumber(e.games) or 0,
+                wr = math.floor(wr + 0.5),
+            })
+        end
+    end
+
+    return report
+end
+
 --- Build weekly digest embed for a player.
-local function build_digest_embed(player, stats)
+local function build_digest_embed(player, stats, weakness)
     local name = (player.game_name or "Unknown") .. "#" .. (player.tag_line or "")
     local wins = stats.wins or 0
     local losses = stats.losses or 0
@@ -37,15 +56,30 @@ local function build_digest_embed(player, stats)
 
     local color = wr >= 50 and 0x57F287 or 0xED4245
 
+    local fields = {
+        {name = "Games", value = tostring(games), inline = true},
+        {name = "Win Rate", value = tostring(wr) .. "%", inline = true},
+        {name = "LP Change", value = lp_str .. " LP", inline = true},
+        {name = "Most Played", value = top_champ, inline = true},
+    }
+
+    -- Add weakness report if available
+    if weakness and #weakness.enemy_champs > 0 then
+        local enemy_lines = {}
+        for _, e in ipairs(weakness.enemy_champs) do
+            table.insert(enemy_lines, e.champ .. " (" .. e.games .. "G, " .. e.wr .. "% WR)")
+        end
+        table.insert(fields, {
+            name = "&#9888; Weaknesses (Enemy Champs)",
+            value = table.concat(enemy_lines, "\n"),
+            inline = false,
+        })
+    end
+
     return {
         title = name .. " — Weekly Summary",
         color = color,
-        fields = {
-            {name = "Games", value = tostring(games), inline = true},
-            {name = "Win Rate", value = tostring(wr) .. "%", inline = true},
-            {name = "LP Change", value = lp_str .. " LP", inline = true},
-            {name = "Most Played", value = top_champ, inline = true},
-        },
+        fields = fields,
         footer = {text = "Week ending " .. os.date("!%Y-%m-%d")},
         timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -153,7 +187,8 @@ local function main()
                 end
                 if effective_url and effective_url ~= "" then
                     local stats = get_weekly_stats(storage, player.puuid)
-                    local embed = build_digest_embed(player, stats)
+                    local weakness = get_weakness_report(storage, player.puuid)
+                    local embed = build_digest_embed(player, stats, weakness)
                     local payload = json.encode({username = "League Client", embeds = {embed}})
 
                     local resp, post_err = http_client.post(effective_url, {

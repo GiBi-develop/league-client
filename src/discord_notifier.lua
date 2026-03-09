@@ -36,6 +36,30 @@ local function queue_label(queue_id, game_mode)
     return game_mode or "Classic"
 end
 
+--- Build a Discord embed for session summary (#11).
+local function build_session_embed(data)
+    local total = data.wins + data.losses
+    local wr = total > 0 and math.floor(100 * data.wins / total + 0.5) or 0
+    local outcome_color = data.wins > data.losses and 0x22C55E or data.wins < data.losses and 0xEF4444 or 0xC89B3C
+    local lp_str = ""
+    if data.lp_change then
+        lp_str = data.lp_change >= 0 and ("+" .. data.lp_change .. " LP") or (data.lp_change .. " LP")
+    end
+    local fields = {
+        {name = "Result", value = tostring(data.wins) .. "W / " .. tostring(data.losses) .. "L (" .. tostring(wr) .. "% WR)", inline = true},
+        {name = "Games", value = tostring(total), inline = true},
+    }
+    if lp_str ~= "" then
+        table.insert(fields, {name = "LP Change", value = lp_str, inline = true})
+    end
+    return {
+        title = data.player_name .. " — Session Summary",
+        color = outcome_color,
+        fields = fields,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    }
+end
+
 --- Build a Discord embed for live game started.
 local function build_game_embed(data)
     local queue_name = queue_label(data.queue_id, data.game_mode)
@@ -157,6 +181,11 @@ local function build_match_embed(data)
         table.insert(fields, {name = "LP", value = "`" .. lp_value .. "`", inline = true})
     end
 
+    -- Add performance score if available
+    if data.performance_score and data.performance_grade then
+        table.insert(fields, {name = "Score", value = "`" .. tostring(data.performance_grade) .. " (" .. tostring(data.performance_score) .. ")`", inline = true})
+    end
+
     -- Build op.gg match URL from match_id (format: PLATFORM_MATCHID)
     local match_url = nil
     if data.match_id then
@@ -249,6 +278,10 @@ local function main()
         storage = nil
     end
 
+    -- Session tracking per player: detect session end when gap > 2h between matches
+    local sessions = {}  -- {[puuid] = {wins=N, losses=N, last_gc=ms}}
+    local SESSION_GAP_MS = 2 * 3600 * 1000
+
     local sub, err = events.subscribe("league_client")
     if err then
         logger:error("Failed to subscribe to events", {error = tostring(err)})
@@ -292,6 +325,39 @@ local function main()
             end
             if not effective_url or effective_url == "" then
                 goto continue
+            end
+
+            -- Session tracking: detect previous session end on new match arrival
+            if evt.kind == "player.match_new" and evt.data.discord_notify then
+                local puuid = tostring(evt.data.puuid or "")
+                local gc = tonumber(evt.data.game_creation) or 0
+                local sess = sessions[puuid]
+                if sess and sess.last_gc > 0 and gc > 0 and (gc - sess.last_gc) > SESSION_GAP_MS then
+                    -- Previous session ended; send summary if 2+ games
+                    if (sess.wins + sess.losses) >= 2 then
+                        local sess_url = evt.data.discord_webhook_url
+                        if not sess_url or sess_url == "" then sess_url = webhook_url end
+                        if sess_url and sess_url ~= "" then
+                            local sembed = build_session_embed({
+                                player_name = tostring(evt.data.player_name or ""),
+                                wins = sess.wins,
+                                losses = sess.losses,
+                                lp_change = sess.lp_change,
+                            })
+                            send_webhook(tostring(sess_url), sembed)
+                        end
+                    end
+                    sessions[puuid] = nil
+                    sess = nil
+                end
+                -- Update session state
+                if gc > 0 then
+                    local s = sessions[puuid] or {wins = 0, losses = 0, lp_change = 0, last_gc = 0}
+                    if evt.data.win then s.wins = s.wins + 1 else s.losses = s.losses + 1 end
+                    s.lp_change = (s.lp_change or 0) + (tonumber(evt.data.lp_diff) or 0)
+                    s.last_gc = gc
+                    sessions[puuid] = s
+                end
             end
 
             local embed = nil

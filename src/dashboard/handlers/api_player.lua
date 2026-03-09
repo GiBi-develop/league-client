@@ -31,7 +31,20 @@ local function handler()
 
     local ranked = storage:get_ranked({puuid = puuid})
     local mastery = storage:get_mastery({puuid = puuid, limit = 10})
-    local matches = storage:get_matches({puuid = puuid, limit = 20})
+
+    -- Match filtering params
+    local match_params = {puuid = puuid, limit = tonumber(req:query("limit")) or 30}
+    local champion = req:query("champion")
+    if champion and champion ~= "" then match_params.champion_name = champion end
+    local position = req:query("position")
+    if position and position ~= "" then match_params.position = position end
+    local queue = req:query("queue")
+    if queue and queue ~= "" then match_params.queue_id = tonumber(queue) end
+    local win_param = req:query("win")
+    if win_param == "true" then match_params.win = true
+    elseif win_param == "false" then match_params.win = false end
+
+    local matches = storage:get_matches(match_params)
 
     res:set_status(200)
     res:write_json({

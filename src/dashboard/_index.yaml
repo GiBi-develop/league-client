@@ -24,7 +24,7 @@ entries:
     kind: function.lua
     source: file://handlers/page.lua
     method: handler
-    modules: [http]
+    modules: [http, env, base64]
     imports:
       renderer: wippy.views:renderer
 

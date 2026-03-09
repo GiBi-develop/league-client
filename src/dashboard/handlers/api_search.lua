@@ -194,9 +194,39 @@ local function build_match_entry(mid, match_data, puuid, champions)
         -- Challenges-based stats
         solo_kills = challenges.soloKills or 0,
         turret_plates = challenges.turretPlatesTaken or 0,
-        dragon_takedowns = challenges.dragonTakedowns or 0,
-        baron_takedowns = challenges.baronTakedowns or 0,
-        rift_herald_takedowns = challenges.riftHeraldTakedowns or 0,
+        dragon_takedowns = (challenges.dragonTakedowns or 0) > 0 and (challenges.dragonTakedowns or 0)
+            or (function()
+                if info and info.teams then
+                    for _, team in ipairs(info.teams) do
+                        if team.teamId == participant.teamId and team.objectives and team.objectives.dragon then
+                            return team.objectives.dragon.kills or 0
+                        end
+                    end
+                end
+                return 0
+            end)(),
+        baron_takedowns = (challenges.baronTakedowns or 0) > 0 and (challenges.baronTakedowns or 0)
+            or (function()
+                if info and info.teams then
+                    for _, team in ipairs(info.teams) do
+                        if team.teamId == participant.teamId and team.objectives and team.objectives.baron then
+                            return team.objectives.baron.kills or 0
+                        end
+                    end
+                end
+                return 0
+            end)(),
+        rift_herald_takedowns = (challenges.riftHeraldTakedowns or 0) > 0 and (challenges.riftHeraldTakedowns or 0)
+            or (function()
+                if info and info.teams then
+                    for _, team in ipairs(info.teams) do
+                        if team.teamId == participant.teamId and team.objectives and team.objectives.riftHerald then
+                            return team.objectives.riftHerald.kills or 0
+                        end
+                    end
+                end
+                return 0
+            end)(),
         vision_per_min = challenges.visionScorePerMinute or 0,
         lane_minions_first10 = challenges.laneMinionsFirst10Minutes or 0,
         max_cs_advantage = challenges.maxCsAdvantageOnLaneOpponent or 0,
@@ -547,60 +577,35 @@ local function handler()
     end
 
     -- ── Matches with caching ──────────────────────────────────
-    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 20, region = region})
-
-    local matches = {}
-    if match_ids and #match_ids > 0 then
-        local existing = {}
-        if not serr and storage then
-            existing = storage:check_existing_matches({match_ids = match_ids}) or {}
-        end
-
-        local new_ids = {}
-        local cached_ids = {}
-        for _, mid in ipairs(match_ids) do
-            if existing[mid] then
-                table.insert(cached_ids, mid)
-            else
-                table.insert(new_ids, mid)
-            end
-        end
-
-        -- Load cached matches from DB
-        local cached_matches_map = {}
-        if #cached_ids > 0 and not serr and storage then
-            local cached_rows = storage:get_matches({puuid = puuid, limit = 100}) or {}
-            local all_participants = storage:get_match_participants({match_ids = cached_ids}) or {}
-
-            local parts_by_match = {}
-            for _, p in ipairs(all_participants) do
-                if not parts_by_match[p.match_id] then
-                    parts_by_match[p.match_id] = {}
-                end
+    -- Step 1: load ALL cached matches from DB immediately
+    local cached_matches_map = {}
+    if not serr and storage then
+        local db_rows = storage:get_matches({puuid = puuid, limit = 50}) or {}
+        local db_ids = {}
+        for _, row in ipairs(db_rows) do table.insert(db_ids, row.match_id) end
+        local parts_by_match = {}
+        if #db_ids > 0 then
+            local all_parts = storage:get_match_participants({match_ids = db_ids}) or {}
+            for _, p in ipairs(all_parts) do
+                if not parts_by_match[p.match_id] then parts_by_match[p.match_id] = {} end
                 table.insert(parts_by_match[p.match_id], p)
             end
-
-            -- Move matches without participants to new_ids for re-fetch
-            local still_cached = {}
-            for _, mid in ipairs(cached_ids) do
-                if parts_by_match[mid] and #parts_by_match[mid] > 0 then
-                    table.insert(still_cached, mid)
-                else
-                    table.insert(new_ids, mid)
-                end
-            end
-            cached_ids = still_cached
-
-            for _, row in ipairs(cached_rows) do
-                if parts_by_match[row.match_id] then
-                    local parts = parts_by_match[row.match_id]
-                    cached_matches_map[row.match_id] = build_cached_match(row, parts, puuid, champions)
-                end
-            end
         end
+        for _, row in ipairs(db_rows) do
+            local parts = parts_by_match[row.match_id] or {}
+            cached_matches_map[row.match_id] = build_cached_match(row, parts, puuid, champions)
+        end
+    end
 
-        -- Fetch only NEW matches from API
-        for _, mid in ipairs(new_ids) do
+    -- Step 2: get recent IDs from Riot API, fetch details only for ones not in DB (cap at 5)
+    local match_ids, _ = funcs.new():call("app.lc:riot_api_get_matches", {puuid = puuid, count = 30, region = region})
+    if match_ids and #match_ids > 0 then
+        local new_ids = {}
+        for _, mid in ipairs(match_ids) do
+            if not cached_matches_map[mid] then table.insert(new_ids, mid) end
+        end
+        for i = 1, math.min(#new_ids, 5) do
+            local mid = new_ids[i]
             local match_data, merr = funcs.new():call("app.lc:riot_api_get_match", {match_id = mid, region = region})
             if match_data and not merr then
                 local entry = build_match_entry(mid, match_data, puuid, champions)
@@ -679,12 +684,21 @@ local function handler()
             end
         end
 
-        -- Build final ordered list
-        for _, mid in ipairs(match_ids) do
-            if cached_matches_map[mid] then
-                table.insert(matches, cached_matches_map[mid])
-            end
         end
+    end
+
+    -- Build final ordered list: all collected matches sorted by game_creation DESC, limit 30
+    local matches = {}
+    for _, m in pairs(cached_matches_map) do
+        table.insert(matches, m)
+    end
+    table.sort(matches, function(a, b)
+        return (a.game_creation or 0) > (b.game_creation or 0)
+    end)
+    if #matches > 30 then
+        local trimmed = {}
+        for i = 1, 30 do trimmed[i] = matches[i] end
+        matches = trimmed
     end
 
     -- ── Profile icon URL ──────────────────────────────────────
@@ -1349,7 +1363,7 @@ local function handler()
         for cn, combos in pairs(champ_item_combos) do
             local best_key, best_wr, best_combo = nil, -1, nil
             for k, combo in pairs(combos) do
-                if combo.games >= 2 then
+                if combo.games >= 1 then
                     local wr = combo.wins / combo.games
                     if wr > best_wr or (wr == best_wr and combo.games > (best_combo and best_combo.games or 0)) then
                         best_key = k

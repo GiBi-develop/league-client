@@ -34,64 +34,74 @@ local function do_fetch(player_id, meta, storage)
     local puuid = account.puuid
     logger:info("Account found", {player = player_name, puuid = puuid})
 
-    -- Step 2: Get summoner data
-    local summoner, sum_err = funcs.new():call("app.lc:riot_api_get_summoner", {
+    -- Steps 2-5: Launch all independent API calls in parallel
+    local f_sum, _ = funcs.async("app.lc:riot_api_get_summoner", {
         puuid = puuid,
         platform = meta.platform,
     })
-
-    if sum_err then
-        logger:warn("Failed to get summoner", {player = player_name, error = tostring(sum_err)})
-    end
-
-    -- Step 3: Get ranked data
-    local ranked, rank_err = funcs.new():call("app.lc:riot_api_get_ranked", {
+    local f_rank, _ = funcs.async("app.lc:riot_api_get_ranked", {
         puuid = puuid,
         platform = meta.platform,
     })
-
-    if rank_err then
-        logger:warn("Failed to get ranked", {player = player_name, error = tostring(rank_err)})
-    end
-
-    -- Step 4: Get champion mastery (top 5) + total mastery score
-    local mastery_score, ms_err = funcs.new():call("app.lc:riot_api_get_mastery_score", {
+    local f_ms, _ = funcs.async("app.lc:riot_api_get_mastery_score", {
         puuid = puuid,
         platform = meta.platform,
     })
-    if ms_err then
-        logger:warn("Failed to get mastery score", {player = player_name, error = tostring(ms_err)})
-        mastery_score = nil
-    end
-
-    local mastery, mast_err = funcs.new():call("app.lc:riot_api_get_mastery", {
+    local f_mast, _ = funcs.async("app.lc:riot_api_get_mastery", {
         puuid = puuid,
         count = 5,
         platform = meta.platform,
     })
 
-    if mast_err then
-        logger:warn("Failed to get mastery", {player = player_name, error = tostring(mast_err)})
-    end
-
-    -- Step 5: Get recent match IDs — backfill 50 on first run, 5 otherwise
-    local match_count = 5
+    -- Check match count from local DB while API calls are in flight (fast, no network)
+    local match_count = 20
     if storage then
         local existing = storage:get_matches({puuid = puuid, limit = 1})
-        if not existing or #existing < 10 then
+        if not existing or #existing < 30 then
             match_count = 50
             logger:info("Backfill mode: fetching 50 matches", {player = player_name})
         end
     end
-
-    local match_ids, match_err = funcs.new():call("app.lc:riot_api_get_matches", {
+    local f_mids, _ = funcs.async("app.lc:riot_api_get_matches", {
         puuid = puuid,
         count = match_count,
         region = meta.region,
     })
 
-    if match_err then
-        logger:warn("Failed to get matches", {player = player_name, error = tostring(match_err)})
+    -- Collect results (all running concurrently; each :receive() blocks until ready)
+    local summoner
+    if f_sum then
+        local payload, ok = f_sum:channel():receive()
+        if ok and payload then summoner = payload:data() end
+        if not summoner then logger:warn("Failed to get summoner", {player = player_name}) end
+    end
+
+    local ranked
+    if f_rank then
+        local payload, ok = f_rank:channel():receive()
+        if ok and payload then ranked = payload:data() end
+        if not ranked then logger:warn("Failed to get ranked", {player = player_name}) end
+    end
+
+    local mastery_score
+    if f_ms then
+        local payload, ok = f_ms:channel():receive()
+        if ok and payload then mastery_score = payload:data() end
+        if not mastery_score then logger:warn("Failed to get mastery score", {player = player_name}) end
+    end
+
+    local mastery
+    if f_mast then
+        local payload, ok = f_mast:channel():receive()
+        if ok and payload then mastery = payload:data() end
+        if not mastery then logger:warn("Failed to get mastery", {player = player_name}) end
+    end
+
+    local match_ids
+    if f_mids then
+        local payload, ok = f_mids:channel():receive()
+        if ok and payload then match_ids = payload:data() end
+        if not match_ids then logger:warn("Failed to get match IDs", {player = player_name}) end
     end
 
     -- Step 6: Fetch match details — only NEW ones (skip cached)
@@ -116,7 +126,7 @@ local function do_fetch(player_id, meta, storage)
             end
         end
 
-        for i = 1, #new_ids do
+        for i = 1, math.min(#new_ids, 10) do
             local match_data, m_err = funcs.new():call("app.lc:riot_api_get_match", {
                 match_id = new_ids[i],
                 region = meta.region,
@@ -240,6 +250,24 @@ local function do_quick_poll(player_id, meta, puuid, storage, game_state)
     return false
 end
 
+--- Compute adaptive fetch interval based on last match time.
+--- If player hasn't played in 24h → slow down to 1h.
+--- If player played within 30min → speed up to 5m.
+--- Otherwise → use configured interval.
+local function adaptive_interval(base_interval, storage, puuid)
+    if not storage or not puuid then return base_interval end
+    local matches = storage:get_matches({puuid = puuid, limit = 1})
+    if not matches or #matches == 0 then return base_interval end
+    local last_gc = tonumber(matches[1].game_creation) or 0
+    if last_gc == 0 then return base_interval end
+    local now_ms = os.time() * 1000
+    local age_ms = now_ms - last_gc
+    local hour_ms = 3600 * 1000
+    if age_ms > 24 * hour_ms then return "1h" end
+    if age_ms < 0.5 * hour_ms then return "5m" end
+    return base_interval
+end
+
 --- Per-player fetcher process.
 --- Runs full fetch immediately on start, then on a timer.
 --- Additionally runs quick polls (ranked + live game) on a shorter interval.
@@ -286,7 +314,8 @@ local function main(player_id, meta, interval)
             end
         elseif r.channel == full_timer then
             known_puuid = do_fetch(player_id, meta, storage) or known_puuid
-            full_timer = time.after(interval)
+            local next_interval = adaptive_interval(interval, storage, known_puuid)
+            full_timer = time.after(next_interval)
             quick_timer = time.after(ranked_interval)  -- reset quick after full
         else
             -- Quick poll: ranked + live game

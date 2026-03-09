@@ -173,6 +173,8 @@ local function init_schema()
     -- Surrender/first blood
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN game_ended_surrender INTEGER DEFAULT 0") end)
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN first_blood INTEGER DEFAULT 0") end)
+    -- LP change per match (#Wave4)
+    pcall(function() db:execute("ALTER TABLE matches ADD COLUMN lp_change INTEGER") end)
     -- Challenges-based stats
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN solo_kills INTEGER DEFAULT 0") end)
     pcall(function() db:execute("ALTER TABLE matches ADD COLUMN turret_plates INTEGER DEFAULT 0") end)
@@ -296,6 +298,53 @@ local function init_schema()
             completed INTEGER DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             completed_at TEXT
+        )
+    ]])
+
+    -- API metrics table (Wave 1: #18 API Health Monitor)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS api_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            endpoint TEXT NOT NULL,
+            status_code INTEGER DEFAULT 200,
+            response_time_ms INTEGER DEFAULT 0,
+            cached INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ]])
+
+    db:execute([[
+        CREATE INDEX IF NOT EXISTS idx_api_metrics_created
+        ON api_metrics(created_at DESC)
+    ]])
+
+    -- Match timeline stats table (Wave 3: #7)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS match_timeline_stats (
+            match_id TEXT NOT NULL,
+            puuid TEXT NOT NULL,
+            cs_at_10 INTEGER DEFAULT 0,
+            cs_at_15 INTEGER DEFAULT 0,
+            gold_at_10 INTEGER DEFAULT 0,
+            gold_at_15 INTEGER DEFAULT 0,
+            gold_diff_at_10 INTEGER DEFAULT 0,
+            gold_diff_at_15 INTEGER DEFAULT 0,
+            xp_diff_at_10 INTEGER DEFAULT 0,
+            first_blood_time INTEGER DEFAULT 0,
+            PRIMARY KEY (match_id, puuid)
+        )
+    ]])
+
+    -- Personal records table (Wave 2: #11)
+    db:execute([[
+        CREATE TABLE IF NOT EXISTS player_records (
+            puuid TEXT NOT NULL,
+            record_type TEXT NOT NULL,
+            value REAL NOT NULL,
+            match_id TEXT,
+            champion_name TEXT,
+            achieved_at TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (puuid, record_type)
         )
     ]])
 
@@ -484,9 +533,38 @@ local function get_matches(input)
     local db, err = sql.get(DB_ID)
     if err then return {error = tostring(err)} end
 
+    -- Build dynamic WHERE with optional filters
+    local where = "puuid = ?"
+    local params = {input.puuid}
+
+    if input.champion_name and input.champion_name ~= "" then
+        where = where .. " AND champion_name = ?"
+        table.insert(params, input.champion_name)
+    end
+    if input.position and input.position ~= "" then
+        where = where .. " AND position = ?"
+        table.insert(params, input.position)
+    end
+    if input.queue_id then
+        where = where .. " AND queue_id = ?"
+        table.insert(params, tonumber(input.queue_id) or 0)
+    end
+    if input.win ~= nil then
+        where = where .. " AND win = ?"
+        table.insert(params, input.win and 1 or 0)
+    end
+    if input.date_from and input.date_from ~= "" then
+        -- date_from as ISO date string "2026-01-01"
+        where = where .. " AND game_creation >= ?"
+        -- Convert date string to epoch ms (approximate)
+        table.insert(params, input.date_from_ms or 0)
+    end
+
+    table.insert(params, limit)
+
     local rows, qerr = db:query(
-        "SELECT * FROM matches WHERE puuid = ? ORDER BY game_creation DESC LIMIT ?",
-        {input.puuid, limit}
+        "SELECT * FROM matches WHERE " .. where .. " ORDER BY game_creation DESC LIMIT ?",
+        params
     )
     db:release()
 
@@ -1612,6 +1690,1102 @@ local function delete_goal(input)
     return {ok = true}
 end
 
+--- Get top-N enemy champions with worst personal WR (min 3 games faced).
+local function get_personal_enemies(input)
+    if not input or not input.puuid then return {} end
+    local min_games = (input and input.min_games) or 3
+    local limit = (input and input.limit) or 5
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            mp.champion_name as enemy_champion,
+            COUNT(DISTINCT mp.match_id) as games,
+            SUM(CASE WHEN m.win = 0 THEN 1 ELSE 0 END) as losses,
+            SUM(CASE WHEN m.win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN m.win = 1 THEN 1 ELSE 0 END) / COUNT(*)) as win_rate
+        FROM match_participants mp
+        JOIN matches m ON mp.match_id = m.match_id
+        JOIN match_participants self_mp
+            ON self_mp.match_id = mp.match_id AND self_mp.puuid = ?
+        WHERE m.puuid = ?
+          AND mp.puuid != ?
+          AND mp.team_id != self_mp.team_id
+          AND mp.champion_name IS NOT NULL
+          AND mp.champion_name != ''
+        GROUP BY mp.champion_name
+        HAVING COUNT(DISTINCT mp.match_id) >= ?
+        ORDER BY win_rate ASC, COUNT(DISTINCT mp.match_id) DESC
+        LIMIT ?
+    ]], {input.puuid, input.puuid, input.puuid, min_games, limit})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Compute a performance score (0-100) for a match.
+--- Uses KDA ratio, CS/min, vision, damage share, kill participation.
+local function compute_performance_score(input)
+    if not input then return {score = 0} end
+
+    local k = tonumber(input.kills) or 0
+    local d = tonumber(input.deaths) or 0
+    local a = tonumber(input.assists) or 0
+    local cs_min = tonumber(input.cs_per_min) or 0
+    local vision = tonumber(input.vision_score) or 0
+    local dmg_share = tonumber(input.damage_share) or 0
+    local kp = tonumber(input.kill_participation) or 0
+    local duration_min = (tonumber(input.game_duration) or 0) / 60
+    local win = input.win and 1 or 0
+
+    -- KDA score (0-25): >5 KDA = 25, <1 = 5
+    local kda = d > 0 and ((k + a) / d) or (k + a)
+    local kda_score = math.min(25, math.max(0, kda * 5))
+
+    -- CS score (0-20): >8 CS/min = 20, <3 = 0
+    local cs_score = math.min(20, math.max(0, (cs_min - 3) * 4))
+
+    -- Vision score (0-15): >1.5 per min = 15
+    local vis_per_min = duration_min > 0 and (vision / duration_min) or 0
+    local vis_score = math.min(15, math.max(0, vis_per_min * 10))
+
+    -- Damage share score (0-15): >30% = 15
+    local dmg_score = math.min(15, math.max(0, dmg_share * 50))
+
+    -- Kill participation score (0-15): >70% = 15
+    local kp_score = math.min(15, math.max(0, kp * 20))
+
+    -- Win bonus (0-10)
+    local win_bonus = win * 10
+
+    local total = math.floor(kda_score + cs_score + vis_score + dmg_score + kp_score + win_bonus + 0.5)
+    total = math.min(100, math.max(0, total))
+
+    local grade = "D"
+    if total >= 90 then grade = "S+"
+    elseif total >= 80 then grade = "S"
+    elseif total >= 70 then grade = "A"
+    elseif total >= 60 then grade = "B"
+    elseif total >= 45 then grade = "C"
+    end
+
+    return {score = total, grade = grade}
+end
+
+--- Save match timeline stats (parsed from timeline API).
+local function save_timeline_stats(input)
+    if not input or not input.match_id or not input.puuid then
+        return {error = "match_id and puuid required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute([[
+        INSERT OR REPLACE INTO match_timeline_stats
+        (match_id, puuid, cs_at_10, cs_at_15, gold_at_10, gold_at_15, gold_diff_at_10, gold_diff_at_15, xp_diff_at_10, first_blood_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        input.match_id, input.puuid,
+        input.cs_at_10 or 0, input.cs_at_15 or 0,
+        input.gold_at_10 or 0, input.gold_at_15 or 0,
+        input.gold_diff_at_10 or 0, input.gold_diff_at_15 or 0,
+        input.xp_diff_at_10 or 0, input.first_blood_time or 0,
+    })
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get timeline stats for a player's matches.
+local function get_timeline_stats(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local limit = input.limit or 20
+    local rows, qerr = db:query([[
+        SELECT t.* FROM match_timeline_stats t
+        JOIN matches m ON t.match_id = m.match_id AND t.puuid = m.puuid
+        WHERE t.puuid = ?
+        ORDER BY m.game_creation DESC
+        LIMIT ?
+    ]], {input.puuid, limit})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Save an API metric entry.
+local function save_api_metric(input)
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    db:execute([[
+        INSERT INTO api_metrics (endpoint, status_code, response_time_ms, cached)
+        VALUES (?, ?, ?, ?)
+    ]], {
+        input.endpoint or "unknown",
+        input.status_code or 200,
+        input.response_time_ms or 0,
+        input.cached and 1 or 0,
+    })
+
+    -- Cleanup: keep only last 24h of metrics
+    db:execute([[
+        DELETE FROM api_metrics WHERE created_at < datetime('now', '-1 day')
+    ]])
+
+    db:release()
+    return {ok = true}
+end
+
+--- Get API metrics summary for the last hour.
+local function get_api_metrics_summary(input)
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            COUNT(*) as total_calls,
+            SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) as success,
+            SUM(CASE WHEN status_code == 429 THEN 1 ELSE 0 END) as rate_limited,
+            SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors,
+            SUM(CASE WHEN cached = 1 THEN 1 ELSE 0 END) as cache_hits,
+            COALESCE(AVG(response_time_ms), 0) as avg_response_ms
+        FROM api_metrics
+        WHERE created_at >= datetime('now', '-1 hour')
+    ]])
+
+    db:release()
+    if qerr or not rows or #rows == 0 then
+        return {total_calls = 0, success = 0, rate_limited = 0, errors = 0, cache_hits = 0, avg_response_ms = 0}
+    end
+    return rows[1]
+end
+
+--- Get data freshness for all tracked players.
+local function get_player_freshness(input)
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            p.puuid, p.game_name, p.tag_line, p.platform, p.updated_at,
+            CAST((julianday('now') - julianday(p.updated_at)) * 24 * 60 AS INTEGER) as minutes_ago,
+            p.in_game
+        FROM players p
+        ORDER BY p.updated_at DESC
+    ]])
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Save or update a personal record if the new value beats the current one.
+local function save_record(input)
+    if not input or not input.puuid or not input.record_type then
+        return {error = "puuid and record_type required"}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {error = tostring(err)} end
+
+    local value = tonumber(input.value) or 0
+    local higher_is_better = true
+    if input.record_type == "lowest_deaths" or input.record_type == "shortest_game" then
+        higher_is_better = false
+    end
+
+    -- Check if existing record
+    local rows, _ = db:query(
+        "SELECT value FROM player_records WHERE puuid = ? AND record_type = ?",
+        {input.puuid, input.record_type}
+    )
+
+    local should_insert = true
+    if rows and #rows > 0 then
+        local old_val = tonumber(rows[1].value) or 0
+        if higher_is_better then
+            should_insert = value > old_val
+        else
+            should_insert = value < old_val
+        end
+    end
+
+    if should_insert then
+        db:execute([[
+            INSERT INTO player_records (puuid, record_type, value, match_id, champion_name, achieved_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(puuid, record_type) DO UPDATE SET
+                value = excluded.value,
+                match_id = excluded.match_id,
+                champion_name = excluded.champion_name,
+                achieved_at = excluded.achieved_at
+        ]], {input.puuid, input.record_type, value, input.match_id or "", input.champion_name or ""})
+    end
+
+    db:release()
+    return {ok = true, updated = should_insert}
+end
+
+--- Get all personal records for a player.
+local function get_records(input)
+    if not input or not input.puuid then return {records = {}} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {records = {}} end
+
+    local rows, qerr = db:query(
+        "SELECT * FROM player_records WHERE puuid = ? ORDER BY record_type",
+        {input.puuid}
+    )
+
+    db:release()
+    if qerr then return {records = {}} end
+    return {records = rows or {}}
+end
+
+--- Get season history: aggregate ranked data by season boundaries.
+local function get_season_history(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    -- Get peak rank per "season" (approximated by year quarters from ranked_history)
+    -- Season boundaries: ~Jan, ~May, ~Sep (Riot season splits)
+    local rows, qerr = db:query([[
+        SELECT
+            CASE
+                WHEN CAST(strftime('%m', recorded_at) AS INTEGER) <= 4 THEN strftime('%Y', recorded_at) || ' Split 1'
+                WHEN CAST(strftime('%m', recorded_at) AS INTEGER) <= 8 THEN strftime('%Y', recorded_at) || ' Split 2'
+                ELSE strftime('%Y', recorded_at) || ' Split 3'
+            END as season,
+            queue_type,
+            MAX(
+                CASE tier
+                    WHEN 'CHALLENGER' THEN 3000
+                    WHEN 'GRANDMASTER' THEN 2900
+                    WHEN 'MASTER' THEN 2800
+                    WHEN 'DIAMOND' THEN 2400
+                    WHEN 'EMERALD' THEN 2000
+                    WHEN 'PLATINUM' THEN 1600
+                    WHEN 'GOLD' THEN 1200
+                    WHEN 'SILVER' THEN 800
+                    WHEN 'BRONZE' THEN 400
+                    ELSE 0
+                END +
+                CASE rank
+                    WHEN 'I' THEN 300
+                    WHEN 'II' THEN 200
+                    WHEN 'III' THEN 100
+                    ELSE 0
+                END +
+                league_points
+            ) as peak_lp_abs,
+            -- Get the tier/rank at peak LP
+            tier as peak_tier,
+            rank as peak_rank,
+            MAX(league_points) as peak_lp,
+            MAX(wins + losses) as total_games
+        FROM ranked_history
+        WHERE puuid = ?
+        GROUP BY season, queue_type
+        ORDER BY season DESC, queue_type
+    ]], {input.puuid})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Generate a template-based match recap text.
+local function get_match_recap(input)
+    if not input or not input.match_id or not input.puuid then
+        return {recap = ""}
+    end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {recap = ""} end
+
+    local rows, qerr = db:query(
+        "SELECT * FROM matches WHERE match_id = ? AND puuid = ? LIMIT 1",
+        {input.match_id, input.puuid}
+    )
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {recap = ""} end
+
+    local m = rows[1]
+    local parts = {}
+
+    -- Champion and result
+    local result_str = (m.win == 1) and "Victory" or "Defeat"
+    table.insert(parts, (m.champion_name or "Unknown") .. " — " .. result_str .. ".")
+
+    -- KDA assessment
+    local k = tonumber(m.kills) or 0
+    local d = tonumber(m.deaths) or 0
+    local a = tonumber(m.assists) or 0
+    local kda_ratio = d > 0 and ((k + a) / d) or (k + a)
+    if kda_ratio >= 5 then
+        table.insert(parts, "Dominant performance with " .. k .. "/" .. d .. "/" .. a .. " KDA (" .. string.format("%.1f", kda_ratio) .. ").")
+    elseif kda_ratio >= 3 then
+        table.insert(parts, "Strong " .. k .. "/" .. d .. "/" .. a .. " KDA (" .. string.format("%.1f", kda_ratio) .. ").")
+    elseif kda_ratio >= 1.5 then
+        table.insert(parts, "Decent " .. k .. "/" .. d .. "/" .. a .. " (" .. string.format("%.1f", kda_ratio) .. " KDA).")
+    else
+        table.insert(parts, "Rough game: " .. k .. "/" .. d .. "/" .. a .. " (" .. string.format("%.1f", kda_ratio) .. " KDA).")
+    end
+
+    -- CS analysis
+    local cs_min = tonumber(m.cs_per_min) or 0
+    if cs_min >= 8 then
+        table.insert(parts, "Excellent farming at " .. string.format("%.1f", cs_min) .. " CS/min.")
+    elseif cs_min >= 6 then
+        table.insert(parts, "Solid " .. string.format("%.1f", cs_min) .. " CS/min.")
+    elseif cs_min > 0 and cs_min < 5 then
+        table.insert(parts, "Low CS (" .. string.format("%.1f", cs_min) .. "/min) — focus on last-hitting.")
+    end
+
+    -- Vision
+    local vision = tonumber(m.vision_score) or 0
+    local duration_min = (tonumber(m.game_duration) or 0) / 60
+    if duration_min > 0 then
+        local vis_per_min = vision / duration_min
+        if vis_per_min < 0.5 and (m.position ~= "BOTTOM" or m.position ~= "UTILITY") then
+            table.insert(parts, "Low vision score (" .. vision .. ") — buy more Control Wards.")
+        elseif vis_per_min >= 1.5 then
+            table.insert(parts, "Great vision control (" .. vision .. " score).")
+        end
+    end
+
+    -- Multi-kills
+    local penta = tonumber(m.penta_kills) or 0
+    local quadra = tonumber(m.quadra_kills) or 0
+    local triple = tonumber(m.triple_kills) or 0
+    if penta > 0 then
+        table.insert(parts, "PENTAKILL!")
+    elseif quadra > 0 then
+        table.insert(parts, "Quadra Kill achieved!")
+    elseif triple > 0 then
+        table.insert(parts, "Triple Kill!")
+    end
+
+    -- Damage
+    local dmg = tonumber(m.total_damage) or 0
+    local dmg_share = tonumber(m.damage_share) or 0
+    if dmg_share > 0.3 then
+        table.insert(parts, "Carried damage (" .. string.format("%.0f%%", dmg_share * 100) .. " of team).")
+    end
+
+    -- Duration
+    if duration_min > 0 then
+        table.insert(parts, string.format("Game lasted %d:%02d.", math.floor(duration_min), (tonumber(m.game_duration) or 0) % 60))
+    end
+
+    return {recap = table.concat(parts, " ")}
+end
+
+--- Get role distribution (games + WR per position).
+local function get_role_distribution(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local queue_filter = ""
+    local params = {input.puuid}
+    if input.queue_id then
+        queue_filter = " AND queue_id = ?"
+        table.insert(params, tonumber(input.queue_id) or 0)
+    end
+
+    local rows, qerr = db:query([[
+        SELECT position,
+               COUNT(*) as games,
+               SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+               ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE puuid = ? AND position != '' AND position IS NOT NULL]] .. queue_filter .. [[
+        GROUP BY position
+        ORDER BY games DESC
+    ]], params)
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Get damage composition profile (avg % physical/magic/true).
+local function get_damage_profile(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local limit = input.limit or 50
+    local rows, qerr = db:query([[
+        SELECT
+            ROUND(AVG(CASE WHEN total_damage > 0 THEN 100.0 * physical_damage / total_damage ELSE 0 END), 1) as avg_physical_pct,
+            ROUND(AVG(CASE WHEN total_damage > 0 THEN 100.0 * magic_damage / total_damage ELSE 0 END), 1) as avg_magic_pct,
+            ROUND(AVG(CASE WHEN total_damage > 0 THEN 100.0 * true_damage / total_damage ELSE 0 END), 1) as avg_true_pct,
+            ROUND(AVG(total_damage)) as avg_damage_dealt,
+            ROUND(AVG(damage_taken)) as avg_damage_taken,
+            ROUND(AVG(damage_share), 3) as avg_damage_share
+        FROM (SELECT * FROM matches WHERE puuid = ? ORDER BY game_creation DESC LIMIT ?)
+    ]], {input.puuid, limit})
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {} end
+    return rows[1]
+end
+
+--- Get game duration win rate analysis (buckets).
+local function get_duration_analysis(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            CASE
+                WHEN game_duration < 1200 THEN '<20min'
+                WHEN game_duration < 1500 THEN '20-25min'
+                WHEN game_duration < 1800 THEN '25-30min'
+                WHEN game_duration < 2100 THEN '30-35min'
+                ELSE '35+min'
+            END as bucket,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE puuid = ? AND game_duration > 0
+        GROUP BY bucket
+        ORDER BY MIN(game_duration)
+    ]], {input.puuid})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Get win rate by hour of day and day of week.
+local function get_time_analysis(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local by_hour, h_err = db:query([[
+        SELECT
+            CAST(strftime('%H', game_creation / 1000, 'unixepoch') AS INTEGER) as hour,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE puuid = ? AND game_creation > 0
+        GROUP BY hour
+        ORDER BY hour
+    ]], {input.puuid})
+
+    local by_weekday, w_err = db:query([[
+        SELECT
+            CAST(strftime('%w', game_creation / 1000, 'unixepoch') AS INTEGER) as weekday,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE puuid = ? AND game_creation > 0
+        GROUP BY weekday
+        ORDER BY weekday
+    ]], {input.puuid})
+
+    db:release()
+
+    local hours = (not h_err and by_hour) or {}
+    local days = (not w_err and by_weekday) or {}
+
+    -- Find best/worst hour
+    local best_hour = nil
+    local worst_hour = nil
+    local best_wr = -1
+    local worst_wr = 101
+    for _, h in ipairs(hours) do
+        local g = tonumber(h.games) or 0
+        local wr = tonumber(h.winrate) or 50
+        if g >= 3 then
+            if wr > best_wr then best_wr = wr; best_hour = h.hour end
+            if wr < worst_wr then worst_wr = wr; worst_hour = h.hour end
+        end
+    end
+
+    return {
+        by_hour = hours,
+        by_weekday = days,
+        best_hour = best_hour,
+        worst_hour = worst_hour,
+    }
+end
+
+--- Get surrender and remake stats.
+local function get_surrender_stats(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            COUNT(*) as total_games,
+            SUM(CASE WHEN game_ended_surrender = 1 THEN 1 ELSE 0 END) as surrenders,
+            ROUND(100.0 * SUM(CASE WHEN game_ended_surrender = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 1) as surrender_rate,
+            SUM(CASE WHEN game_duration < 300 AND game_duration > 0 THEN 1 ELSE 0 END) as remakes,
+            SUM(CASE WHEN first_blood = 1 THEN 1 ELSE 0 END) as first_bloods,
+            ROUND(100.0 * SUM(CASE WHEN first_blood = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 1) as first_blood_rate
+        FROM matches
+        WHERE puuid = ?
+    ]], {input.puuid})
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {} end
+    return rows[1]
+end
+
+--- Get multi-queue breakdown (stats per queue type).
+local function get_queue_breakdown(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            queue_id,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate,
+            ROUND(AVG(CAST(kills AS REAL)), 1) as avg_kills,
+            ROUND(AVG(CAST(deaths AS REAL)), 1) as avg_deaths,
+            ROUND(AVG(CAST(assists AS REAL)), 1) as avg_assists,
+            ROUND(AVG(cs_per_min), 1) as avg_cs_min,
+            ROUND(AVG(CAST(total_damage AS REAL))) as avg_damage
+        FROM matches
+        WHERE puuid = ?
+        GROUP BY queue_id
+        ORDER BY games DESC
+    ]], {input.puuid})
+
+    db:release()
+    if qerr then return {} end
+
+    -- Add human-readable queue names
+    for _, row in ipairs(rows or {}) do
+        local qid = tonumber(row.queue_id) or 0
+        if qid == 420 then row.queue_name = "Solo/Duo"
+        elseif qid == 440 then row.queue_name = "Flex"
+        elseif qid == 450 then row.queue_name = "ARAM"
+        elseif qid == 1700 then row.queue_name = "Arena"
+        elseif qid == 490 then row.queue_name = "Quick Play"
+        elseif qid == 400 then row.queue_name = "Normal Draft"
+        elseif qid == 430 then row.queue_name = "Normal Blind"
+        elseif qid == 900 then row.queue_name = "ARURF"
+        else row.queue_name = "Other (" .. tostring(qid) .. ")"
+        end
+    end
+
+    return rows or {}
+end
+
+--- Get summoner spell analysis (spell combos with WR).
+local function get_spell_analysis(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local champion_filter = ""
+    local params = {input.puuid}
+    if input.champion_name and input.champion_name ~= "" then
+        champion_filter = " AND champion_name = ?"
+        table.insert(params, input.champion_name)
+    end
+
+    local rows, qerr = db:query([[
+        SELECT
+            summoner1, summoner2,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE puuid = ? AND summoner1 > 0 AND summoner2 > 0]] .. champion_filter .. [[
+        GROUP BY summoner1, summoner2
+        HAVING COUNT(*) >= 2
+        ORDER BY games DESC
+        LIMIT 10
+    ]], params)
+
+    db:release()
+    if qerr then return {} end
+
+    -- Map spell IDs to names
+    for _, row in ipairs(rows or {}) do
+        local function spell_name(id)
+            local sid = tonumber(id) or 0
+            if sid == 4 then return "Flash"
+            elseif sid == 14 then return "Ignite"
+            elseif sid == 12 then return "Teleport"
+            elseif sid == 6 then return "Ghost"
+            elseif sid == 7 then return "Heal"
+            elseif sid == 3 then return "Exhaust"
+            elseif sid == 11 then return "Smite"
+            elseif sid == 21 then return "Barrier"
+            elseif sid == 1 then return "Cleanse"
+            else return tostring(sid)
+            end
+        end
+        row.spell1_name = spell_name(row.summoner1)
+        row.spell2_name = spell_name(row.summoner2)
+    end
+
+    return rows or {}
+end
+
+--- Get champion matchups for a specific player+champion combination.
+local function get_champion_matchups(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local champion_filter = ""
+    local params = {input.puuid}
+    if input.champion_name and input.champion_name ~= "" then
+        champion_filter = " AND m.champion_name = ?"
+        table.insert(params, input.champion_name)
+    end
+    local position_filter = ""
+    if input.position and input.position ~= "" then
+        position_filter = " AND m.position = ?"
+        table.insert(params, input.position)
+    end
+    local min_games = input.min_games or 2
+
+    local rows, qerr = db:query([[
+        SELECT
+            mp.champion_name as enemy_champion,
+            COUNT(*) as games,
+            SUM(CASE WHEN m.win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN m.win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate,
+            ROUND(AVG(CAST(m.kills AS REAL)), 1) as avg_kills,
+            ROUND(AVG(CAST(m.deaths AS REAL)), 1) as avg_deaths,
+            ROUND(AVG(CAST(m.assists AS REAL)), 1) as avg_assists
+        FROM matches m
+        JOIN match_participants mp ON m.match_id = mp.match_id
+            AND mp.team_id != (SELECT team_id FROM match_participants WHERE match_id = m.match_id AND puuid = m.puuid LIMIT 1)
+            AND mp.position = m.position
+        WHERE m.puuid = ? AND m.position != '']] .. champion_filter .. position_filter .. [[
+        GROUP BY mp.champion_name
+        HAVING COUNT(*) >= ]] .. tostring(min_games) .. [[
+        ORDER BY games DESC
+        LIMIT 20
+    ]], params)
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Get global champion stats aggregated from all stored match data.
+local function get_champion_global_stats(input)
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local where_parts = {}
+    local params = {}
+    if input and input.queue_id then
+        table.insert(where_parts, "m.queue_id = ?")
+        table.insert(params, tonumber(input.queue_id) or 0)
+    end
+    if input and input.position and input.position ~= "" then
+        table.insert(where_parts, "mp.position = ?")
+        table.insert(params, input.position)
+    end
+
+    local where_clause = ""
+    if #where_parts > 0 then
+        where_clause = " WHERE " .. table.concat(where_parts, " AND ")
+    end
+
+    local min_games = (input and input.min_games) or 5
+
+    local rows, qerr = db:query([[
+        SELECT
+            mp.champion_name,
+            COUNT(*) as games,
+            SUM(CASE WHEN mp.win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN mp.win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate,
+            ROUND(AVG(CAST(mp.kills AS REAL)), 1) as avg_kills,
+            ROUND(AVG(CAST(mp.deaths AS REAL)), 1) as avg_deaths,
+            ROUND(AVG(CAST(mp.assists AS REAL)), 1) as avg_assists,
+            ROUND(AVG(CAST(mp.cs AS REAL)), 0) as avg_cs,
+            ROUND(AVG(CAST(mp.gold_earned AS REAL)), 0) as avg_gold,
+            ROUND(AVG(CAST(mp.total_damage AS REAL)), 0) as avg_damage
+        FROM match_participants mp
+        JOIN matches m ON mp.match_id = m.match_id]] .. where_clause .. [[
+        GROUP BY mp.champion_name
+        HAVING COUNT(*) >= ]] .. tostring(min_games) .. [[
+        ORDER BY games DESC
+        LIMIT ]] .. tostring((input and input.limit) or 50) .. [[
+    ]], params)
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Get vision trend over recent matches.
+local function get_vision_trend(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local limit = input.limit or 20
+    local rows, qerr = db:query([[
+        SELECT
+            match_id, champion_name, game_duration, vision_score,
+            wards_placed, wards_killed, control_wards,
+            CASE WHEN game_duration > 0
+                THEN ROUND(CAST(vision_score AS REAL) / (game_duration / 60.0), 2)
+                ELSE 0
+            END as vision_per_min,
+            win
+        FROM matches
+        WHERE puuid = ? AND game_duration > 0
+        ORDER BY game_creation DESC
+        LIMIT ?
+    ]], {input.puuid, limit})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Get peer comparison percentiles (vs other tracked players in same tier).
+local function get_peer_percentiles(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    -- Get player's tier
+    local tier_rows, _ = db:query(
+        "SELECT tier FROM player_ranked WHERE puuid = ? AND queue_type = 'RANKED_SOLO_5x5' LIMIT 1",
+        {input.puuid}
+    )
+    local tier = (tier_rows and #tier_rows > 0) and tier_rows[1].tier or nil
+
+    -- Get player's averages
+    local player_stats, _ = db:query([[
+        SELECT
+            AVG(cs_per_min) as avg_cs_min,
+            AVG(CAST(vision_score AS REAL)) as avg_vision,
+            AVG(CASE WHEN deaths > 0 THEN CAST(kills + assists AS REAL) / deaths ELSE kills + assists END) as avg_kda,
+            AVG(CAST(total_damage AS REAL)) as avg_damage,
+            AVG(kill_participation) as avg_kp
+        FROM (SELECT * FROM matches WHERE puuid = ? ORDER BY game_creation DESC LIMIT 30)
+    ]], {input.puuid})
+
+    if not player_stats or #player_stats == 0 then
+        db:release()
+        return {}
+    end
+
+    local ps = player_stats[1]
+
+    -- Count all tracked players with stats
+    local all_players, _ = db:query([[
+        SELECT
+            p.puuid,
+            AVG(m.cs_per_min) as avg_cs_min,
+            AVG(CAST(m.vision_score AS REAL)) as avg_vision,
+            AVG(CASE WHEN m.deaths > 0 THEN CAST(m.kills + m.assists AS REAL) / m.deaths ELSE m.kills + m.assists END) as avg_kda,
+            AVG(CAST(m.total_damage AS REAL)) as avg_damage,
+            AVG(m.kill_participation) as avg_kp
+        FROM players p
+        JOIN matches m ON p.puuid = m.puuid
+        GROUP BY p.puuid
+        HAVING COUNT(m.match_id) >= 5
+    ]])
+
+    db:release()
+
+    if not all_players or #all_players < 2 then return {} end
+
+    local function percentile(field)
+        local my_val = tonumber(ps[field]) or 0
+        local below = 0
+        local total = #all_players
+        for _, p in ipairs(all_players) do
+            if (tonumber(p[field]) or 0) < my_val then below = below + 1 end
+        end
+        return math.floor(below / total * 100 + 0.5)
+    end
+
+    return {
+        cs_per_min = percentile("avg_cs_min"),
+        vision = percentile("avg_vision"),
+        kda = percentile("avg_kda"),
+        damage = percentile("avg_damage"),
+        kill_participation = percentile("avg_kp"),
+        sample_size = #all_players,
+        tier = tier,
+    }
+end
+
+--- Get champion build data (top rune+item combos from stored matches).
+local function get_champion_builds(input)
+    if not input or not input.champion_name then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local where_extra = ""
+    local params = {input.champion_name}
+    if input.position and input.position ~= "" then
+        where_extra = " AND position = ?"
+        table.insert(params, input.position)
+    end
+    if input.queue_id then
+        where_extra = where_extra .. " AND queue_id = ?"
+        table.insert(params, tonumber(input.queue_id) or 0)
+    end
+
+    -- Top rune pages (keystone + primary + sub)
+    local runes, _ = db:query([[
+        SELECT
+            perks_keystone, perks_primary_style, perks_sub_style,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE champion_name = ? AND perks_keystone > 0]] .. where_extra .. [[
+        GROUP BY perks_keystone, perks_primary_style, perks_sub_style
+        HAVING COUNT(*) >= 2
+        ORDER BY games DESC
+        LIMIT 5
+    ]], params)
+
+    -- Top spell combos
+    local params2 = {input.champion_name}
+    if input.position and input.position ~= "" then table.insert(params2, input.position) end
+    if input.queue_id then table.insert(params2, tonumber(input.queue_id) or 0) end
+
+    local spells, _ = db:query([[
+        SELECT
+            summoner1, summoner2,
+            COUNT(*) as games,
+            SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN win = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as winrate
+        FROM matches
+        WHERE champion_name = ? AND summoner1 > 0 AND summoner2 > 0]] .. where_extra .. [[
+        GROUP BY summoner1, summoner2
+        HAVING COUNT(*) >= 2
+        ORDER BY games DESC
+        LIMIT 3
+    ]], params2)
+
+    db:release()
+
+    return {
+        runes = runes or {},
+        spells = spells or {},
+    }
+end
+
+--- Get objective control stats for a player (dragons, barons, heralds from match data).
+local function get_objective_stats(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local rows, qerr = db:query([[
+        SELECT
+            COUNT(*) as total_games,
+            ROUND(AVG(CAST(dragon_takedowns AS REAL)), 1) as avg_dragons,
+            ROUND(AVG(CAST(baron_takedowns AS REAL)), 1) as avg_barons,
+            ROUND(AVG(CAST(rift_herald_takedowns AS REAL)), 1) as avg_heralds,
+            ROUND(AVG(CAST(turret_takedowns AS REAL)), 1) as avg_turrets,
+            ROUND(AVG(CAST(turret_plates AS REAL)), 1) as avg_plates,
+            SUM(CASE WHEN dragon_takedowns > 0 THEN 1 ELSE 0 END) as games_with_dragons,
+            SUM(CASE WHEN baron_takedowns > 0 THEN 1 ELSE 0 END) as games_with_barons,
+            SUM(CASE WHEN first_blood = 1 THEN 1 ELSE 0 END) as first_bloods,
+            SUM(CASE WHEN first_blood = 1 AND win = 1 THEN 1 ELSE 0 END) as first_blood_wins
+        FROM matches
+        WHERE puuid = ? AND game_duration > 300
+    ]], {input.puuid})
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {} end
+    return rows[1]
+end
+
+--- Get early game averages from timeline stats.
+local function get_early_game_stats(input)
+    if not input or not input.puuid then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local limit = input.limit or 20
+    local rows, qerr = db:query([[
+        SELECT
+            ROUND(AVG(CAST(cs_at_10 AS REAL)), 1) as avg_cs_at_10,
+            ROUND(AVG(CAST(cs_at_15 AS REAL)), 1) as avg_cs_at_15,
+            ROUND(AVG(CAST(gold_at_10 AS REAL)), 0) as avg_gold_at_10,
+            ROUND(AVG(CAST(gold_at_15 AS REAL)), 0) as avg_gold_at_15,
+            ROUND(AVG(CAST(gold_diff_at_10 AS REAL)), 0) as avg_gold_diff_at_10,
+            ROUND(AVG(CAST(gold_diff_at_15 AS REAL)), 0) as avg_gold_diff_at_15,
+            ROUND(AVG(CAST(xp_diff_at_10 AS REAL)), 0) as avg_xp_diff_at_10,
+            COUNT(CASE WHEN first_blood_time > 0 THEN 1 END) as first_blood_games,
+            COUNT(*) as total_games,
+            ROUND(AVG(CAST(first_blood_time AS REAL)), 0) as avg_first_blood_time
+        FROM match_timeline_stats t
+        JOIN matches m ON t.match_id = m.match_id AND t.puuid = m.puuid
+        WHERE t.puuid = ?
+        ORDER BY m.game_creation DESC
+        LIMIT ?
+    ]], {input.puuid, limit})
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {} end
+    return rows[1]
+end
+
+--- Compute tilt probability score (0-100) from recent matches.
+local function get_tilt_score(input)
+    if not input or not input.puuid then return {score = 0} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {score = 0} end
+
+    local rows, qerr = db:query([[
+        SELECT win, kills, deaths, assists, cs_per_min, game_creation
+        FROM matches
+        WHERE puuid = ?
+        ORDER BY game_creation DESC
+        LIMIT 10
+    ]], {input.puuid})
+
+    db:release()
+    if qerr or not rows or #rows == 0 then return {score = 0} end
+
+    local score = 50
+
+    -- Losing streak factor
+    local streak = 0
+    for _, m in ipairs(rows) do
+        if (tonumber(m.win) or 0) == 0 then streak = streak + 1 else break end
+    end
+    score = score + streak * 8
+
+    -- Rising deaths (recent 5 vs older 5)
+    if #rows >= 6 then
+        local rc = math.min(5, #rows)
+        local oc = math.min(5, #rows - rc)
+        local rd, od = 0, 0
+        for i = 1, rc do rd = rd + (tonumber(rows[i].deaths) or 0) end
+        for i = rc + 1, rc + oc do od = od + (tonumber(rows[i].deaths) or 0) end
+        if oc > 0 then
+            local ra, oa = rd / rc, od / oc
+            if ra > oa + 1 then score = score + math.floor((ra - oa) * 5) end
+        end
+    end
+
+    -- Falling CS
+    if #rows >= 6 then
+        local rc = math.min(5, #rows)
+        local oc = math.min(5, #rows - rc)
+        local rcs, ocs = 0, 0
+        for i = 1, rc do rcs = rcs + (tonumber(rows[i].cs_per_min) or 0) end
+        for i = rc + 1, rc + oc do ocs = ocs + (tonumber(rows[i].cs_per_min) or 0) end
+        if oc > 0 then
+            local ra, oa = rcs / rc, ocs / oc
+            if oa > ra + 0.5 then score = score + math.floor((oa - ra) * 5) end
+        end
+    end
+
+    -- Recent WR factor
+    local wins = 0
+    for _, m in ipairs(rows) do
+        if (tonumber(m.win) or 0) == 1 then wins = wins + 1 end
+    end
+    local wr = wins / #rows * 100
+    if wr < 30 then score = score + 15
+    elseif wr < 40 then score = score + 8
+    elseif wr > 70 then score = score - 15
+    elseif wr > 60 then score = score - 8
+    end
+
+    if score < 0 then score = 0 end
+    if score > 100 then score = 100 end
+
+    return {
+        score = score,
+        streak = streak,
+        recent_wr = math.floor(wr + 0.5),
+        recent_games = #rows,
+    }
+end
+
+--- Search players by name for autocomplete.
+local function search_players(input)
+    if not input or not input.query or input.query == "" then return {} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {} end
+
+    local q = "%" .. tostring(input.query) .. "%"
+    local limit = input.limit or 10
+
+    local rows, qerr = db:query([[
+        SELECT puuid, game_name, tag_line, profile_icon_id, summoner_level, platform
+        FROM players
+        WHERE game_name LIKE ?
+        ORDER BY updated_at DESC
+        LIMIT ?
+    ]], {q, limit})
+
+    db:release()
+    if qerr then return {} end
+    return rows or {}
+end
+
+--- Update lp_change for a match after it's been saved.
+local function update_match_lp(input)
+    if not input or not input.match_id or not input.puuid then return {ok = false} end
+
+    local db, err = sql.get(DB_ID)
+    if err then return {ok = false} end
+
+    db:execute(
+        "UPDATE matches SET lp_change = ? WHERE match_id = ? AND puuid = ?",
+        {input.lp_change or 0, input.match_id, input.puuid}
+    )
+
+    db:release()
+    return {ok = true}
+end
+
 return {
     init_schema = init_schema,
     get_player = get_player,
@@ -1658,4 +2832,32 @@ return {
     list_managed_players = list_managed_players,
     add_managed_player = add_managed_player,
     remove_managed_player = remove_managed_player,
+    get_personal_enemies = get_personal_enemies,
+    save_api_metric = save_api_metric,
+    get_api_metrics_summary = get_api_metrics_summary,
+    get_player_freshness = get_player_freshness,
+    save_record = save_record,
+    get_records = get_records,
+    get_season_history = get_season_history,
+    get_match_recap = get_match_recap,
+    compute_performance_score = compute_performance_score,
+    save_timeline_stats = save_timeline_stats,
+    get_timeline_stats = get_timeline_stats,
+    get_role_distribution = get_role_distribution,
+    get_damage_profile = get_damage_profile,
+    get_duration_analysis = get_duration_analysis,
+    get_time_analysis = get_time_analysis,
+    get_surrender_stats = get_surrender_stats,
+    get_queue_breakdown = get_queue_breakdown,
+    get_spell_analysis = get_spell_analysis,
+    update_match_lp = update_match_lp,
+    get_champion_matchups = get_champion_matchups,
+    get_champion_global_stats = get_champion_global_stats,
+    get_vision_trend = get_vision_trend,
+    get_peer_percentiles = get_peer_percentiles,
+    get_early_game_stats = get_early_game_stats,
+    get_champion_builds = get_champion_builds,
+    get_objective_stats = get_objective_stats,
+    get_tilt_score = get_tilt_score,
+    search_players = search_players,
 }

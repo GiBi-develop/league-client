@@ -52,6 +52,11 @@ entries:
     variable: TELEGRAM_CHAT_ID
     storage: app.lc:file_env
 
+  - name: dashboard_password
+    kind: env.variable
+    variable: DASHBOARD_PASSWORD
+    storage: app.lc:file_env
+
   # ── Riot API Functions ───────────────────────────────
   - name: riot_api_get_account
     kind: function.lua
@@ -226,6 +231,7 @@ entries:
       - events
       - contract
       - time
+      - funcs
 
   - name: data_manager
     kind: process.service
@@ -573,6 +579,36 @@ entries:
     path: /api/clash
     func: app.lc:api_clash
 
+  # ── Tracked Players API (#13) ────────────────────────
+  - name: api_tracked_players
+    kind: function.lua
+    source: file://dashboard/handlers/api_tracked_players.lua
+    method: handler
+    modules: [http, contract]
+
+  - name: api_tracked_players_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/tracked-players
+    func: app.lc:api_tracked_players
+
+  # ── OBS Overlay ──────────────────────────────────────
+  - name: api_overlay
+    kind: function.lua
+    source: file://dashboard/handlers/api_overlay.lua
+    method: handler
+    modules: [http, contract]
+
+  - name: api_overlay_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /overlay/{puuid}
+    func: app.lc:api_overlay
+
   # ── Notification Prefs API (#13) ────────────────────
   - name: api_notification_prefs
     kind: function.lua
@@ -634,6 +670,139 @@ entries:
     method: DELETE
     path: /api/goals
     func: app.lc:api_goals
+
+  # ── Multi-Search API (#10) ─────────────────────────
+  - name: api_multi_search
+    kind: function.lua
+    source: file://dashboard/handlers/api_multi_search.lua
+    method: handler
+    modules: [http, json, funcs, env, contract]
+
+  - name: api_multi_search_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/multi-search
+    func: app.lc:api_multi_search
+
+  # ── Live Game Briefing API (#1) ────────────────────
+  - name: api_live_briefing
+    kind: function.lua
+    source: file://dashboard/handlers/api_live_briefing.lua
+    method: handler
+    modules: [http, json, funcs, env, contract]
+
+  - name: api_live_briefing_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/live-game/{puuid}/briefing
+    func: app.lc:api_live_briefing
+
+  # ── Personal Records API (#11) ──────────────────────
+  - name: api_records
+    kind: function.lua
+    source: file://dashboard/handlers/api_records.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_records_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/player/{puuid}/records
+    func: app.lc:api_records
+
+  # ── Match Recap API (#23) ──────────────────────────
+  - name: api_match_recap
+    kind: function.lua
+    source: file://dashboard/handlers/api_match_recap.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_match_recap_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/match/{matchId}/recap
+    func: app.lc:api_match_recap
+
+  # ── Shareable Profile Links (#30) ──────────────────
+  - name: api_profile_link
+    kind: function.lua
+    source: file://dashboard/handlers/api_profile_link.lua
+    method: handler
+    modules: [http, contract]
+
+  - name: api_profile_link_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /p/{slug}
+    func: app.lc:api_profile_link
+
+  # ── Autocomplete API ────────────────────────────────
+  - name: api_autocomplete
+    kind: function.lua
+    source: file://dashboard/handlers/api_autocomplete.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_autocomplete_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/autocomplete
+    func: app.lc:api_autocomplete
+
+  # ── Wave 5: Champion Stats & Matchups ─────────────────
+  - name: api_champion_stats
+    kind: function.lua
+    source: file://dashboard/handlers/api_champion_stats.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_champion_stats_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/champions
+    func: app.lc:api_champion_stats
+
+  - name: api_champion_matchups
+    kind: function.lua
+    source: file://dashboard/handlers/api_champion_matchups.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_champion_matchups_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/player/{puuid}/matchups
+    func: app.lc:api_champion_matchups
+
+  - name: api_champion_builds
+    kind: function.lua
+    source: file://dashboard/handlers/api_champion_builds.lua
+    method: handler
+    modules: [http, json, contract]
+
+  - name: api_champion_builds_endpoint
+    kind: http.endpoint
+    meta:
+      router: app.lc:router_http
+    method: GET
+    path: /api/champion/{name}/builds
+    func: app.lc:api_champion_builds
 
   # ── Templates ────────────────────────────────────────
   - name: templates

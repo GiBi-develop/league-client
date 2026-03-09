@@ -2,6 +2,7 @@ local logger = require("logger")
 local events = require("events")
 local contract = require("contract")
 local time = require("time")
+local funcs = require("funcs")
 
 --- Tier weight for rank goal comparison (higher = better rank).
 local function tier_weight(tier)
@@ -58,6 +59,106 @@ local function parse_rank_target(target)
         return found_tier, "II"
     end
     return found_tier, nil
+end
+
+--- Parse timeline data and save early-game stats + objectives + skill order.
+local function parse_and_save_timeline(storage, match_id, puuid, region, participant_id, team_id)
+    local timeline, terr = funcs.new():call("app.lc:riot_api_get_match_timeline", {
+        match_id = match_id,
+        region = region,
+    })
+
+    if terr or not timeline or not timeline.info or not timeline.info.frames then
+        return
+    end
+
+    local frames = timeline.info.frames
+    local cs_at_10 = 0
+    local cs_at_15 = 0
+    local gold_at_10 = 0
+    local gold_at_15 = 0
+    local gold_diff_at_10 = 0
+    local gold_diff_at_15 = 0
+    local xp_diff_at_10 = 0
+    local first_blood_time = 0
+
+    -- Find our participant ID from timeline participants
+    local my_pid = nil
+    local my_team = team_id or 100
+    if timeline.info.participants then
+        for _, tp in ipairs(timeline.info.participants) do
+            if tp.puuid == puuid then
+                my_pid = tp.participantId
+                break
+            end
+        end
+    end
+
+    if not my_pid then return end
+
+    -- Find lane opponent (same position, other team)
+    local opp_pid = nil
+    -- Simple heuristic: opponent is my_pid + 5 or my_pid - 5
+    if my_pid <= 5 then opp_pid = my_pid + 5
+    else opp_pid = my_pid - 5 end
+
+    for _, frame in ipairs(frames) do
+        local ts_min = (frame.timestamp or 0) / 60000
+
+        if frame.participantFrames then
+            local my_frame = frame.participantFrames[tostring(my_pid)]
+            local opp_frame = frame.participantFrames[tostring(opp_pid)]
+
+            if my_frame then
+                local my_cs = (tonumber(my_frame.minionsKilled) or 0) + (tonumber(my_frame.jungleMinionsKilled) or 0)
+                local my_gold = tonumber(my_frame.totalGold) or 0
+                local my_xp = tonumber(my_frame.xp) or 0
+
+                local opp_gold = opp_frame and (tonumber(opp_frame.totalGold) or 0) or 0
+                local opp_xp = opp_frame and (tonumber(opp_frame.xp) or 0) or 0
+
+                if ts_min >= 10 and cs_at_10 == 0 then
+                    cs_at_10 = my_cs
+                    gold_at_10 = my_gold
+                    gold_diff_at_10 = my_gold - opp_gold
+                    xp_diff_at_10 = my_xp - opp_xp
+                end
+                if ts_min >= 15 and cs_at_15 == 0 then
+                    cs_at_15 = my_cs
+                    gold_at_15 = my_gold
+                    gold_diff_at_15 = my_gold - opp_gold
+                end
+            end
+        end
+
+        -- Track first blood time
+        if frame.events and first_blood_time == 0 then
+            for _, evt in ipairs(frame.events) do
+                if evt.type == "CHAMPION_KILL" then
+                    if (tonumber(evt.killerId) or 0) == my_pid or (tonumber(evt.victimId) or 0) == my_pid then
+                        first_blood_time = math.floor((evt.timestamp or 0) / 1000)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    -- Save timeline stats
+    storage:save_timeline_stats({
+        match_id = match_id,
+        puuid = puuid,
+        cs_at_10 = cs_at_10,
+        cs_at_15 = cs_at_15,
+        gold_at_10 = gold_at_10,
+        gold_at_15 = gold_at_15,
+        gold_diff_at_10 = gold_diff_at_10,
+        gold_diff_at_15 = gold_diff_at_15,
+        xp_diff_at_10 = xp_diff_at_10,
+        first_blood_time = first_blood_time,
+    })
+
+    logger:debug("Timeline stats saved", {match_id = match_id})
 end
 
 --- Opens the player storage contract.
@@ -417,8 +518,59 @@ local function handle_data_fetched(storage, data)
                     })
                 end
 
-                -- Emit new match event ONLY if it was actually inserted (not a duplicate)
+                -- Save personal records (#11)
                 if result and result.inserted then
+                    local game_dur = game_duration
+                    local cs_pm = cs_per_min
+                    storage:save_record({puuid = puuid, record_type = "most_kills", value = participant.kills or 0, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "most_assists", value = participant.assists or 0, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "most_cs", value = cs, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "most_damage", value = participant.totalDamageDealtToChampions or 0, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "most_gold", value = participant.goldEarned or 0, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "best_kda", value = (participant.kills or 0) + (participant.assists or 0) - (participant.deaths or 0), match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "most_vision", value = participant.visionScore or 0, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "best_cs_per_min", value = cs_pm, match_id = match_id, champion_name = participant.championName})
+                    storage:save_record({puuid = puuid, record_type = "lowest_deaths", value = participant.deaths or 0, match_id = match_id, champion_name = participant.championName})
+                    if (participant.pentaKills or 0) > 0 then
+                        storage:save_record({puuid = puuid, record_type = "penta_kills", value = participant.pentaKills, match_id = match_id, champion_name = participant.championName})
+                    end
+                end
+
+                -- Fetch and parse timeline for newly inserted matches (#Wave6)
+                if result and result.inserted and game_duration >= 600 then
+                    -- Only fetch timeline for games > 10 min (skip remakes/surrenders)
+                    pcall(function()
+                        parse_and_save_timeline(
+                            storage, match_id, puuid,
+                            data.region or "EUROPE",
+                            participant.participantId,
+                            participant.teamId
+                        )
+                    end)
+                    time.sleep("300ms") -- Rate limit protection
+                end
+
+                -- Compute performance score for this match
+                local perf = {score = 0, grade = "D"}
+                if result and result.inserted then
+                    perf = storage:compute_performance_score({
+                        kills = participant.kills or 0,
+                        deaths = participant.deaths or 0,
+                        assists = participant.assists or 0,
+                        cs_per_min = cs_per_min,
+                        vision_score = participant.visionScore or 0,
+                        damage_share = (challenges.teamDamagePercentage or 0),
+                        kill_participation = (challenges.killParticipation or 0),
+                        game_duration = game_duration,
+                        win = participant.win,
+                    })
+                end
+
+                -- Emit new match event ONLY if it was actually inserted (not a duplicate)
+                -- and only for recent games (< 24h old) to avoid flooding on first backfill
+                local game_age_ms = os.time() * 1000 - (info.gameCreation or 0)
+                local is_recent_game = game_age_ms < 24 * 3600 * 1000
+                if result and result.inserted and is_recent_game then
                     local duration_min = math.floor(game_duration / 60)
                     local duration_sec = game_duration % 60
 
@@ -428,6 +580,15 @@ local function handle_data_fetched(storage, data)
                     elseif info.queueId == 440 then queue_type = "RANKED_FLEX_SR"
                     end
                     local lp_info = queue_type and lp_diffs[queue_type] or nil
+
+                    -- Store LP change per match (#Wave4)
+                    if lp_info and lp_info.lp_diff then
+                        storage:update_match_lp({
+                            match_id = match_id,
+                            puuid = puuid,
+                            lp_change = lp_info.lp_diff,
+                        })
+                    end
 
                     events.send("league_client", "player.match_new", "/players/" .. data.player_id, {
                         player_id = data.player_id,
@@ -450,7 +611,11 @@ local function handle_data_fetched(storage, data)
                         queue_id = info.queueId,
                         lp_diff = lp_info and lp_info.lp_diff or nil,
                         penta_kills = participant.pentaKills,
+                        game_creation = info.gameCreation,
+                        performance_score = perf.score or 0,
+                        performance_grade = perf.grade or "D",
                         discord_notify = data.discord_notify or false,
+                        discord_webhook_url = data.discord_webhook_url,
                     })
                 end
 

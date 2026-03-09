@@ -107,12 +107,9 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 /* Champion Rotation */
 .rotation-section { margin-bottom: 24px; }
 .rotation-grid {
-  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
-  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  display: flex; flex-wrap: wrap; gap: 8px;
 }
-.rotation-grid::-webkit-scrollbar { height: 4px; }
-.rotation-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.rotation-champ { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; flex-shrink: 0; }
+.rotation-champ { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
 .rotation-champ img { width: 48px; height: 48px; border-radius: 8px; border: 2px solid var(--border); transition: border-color 0.15s; }
 .rotation-champ:hover img { border-color: var(--gold); }
 .rotation-champ-name { font-size: 10px; color: var(--text-muted); text-align: center; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -277,6 +274,23 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 .extended-stats.visible { display: grid; }
 .ext-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
 .ext-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+/* LP Velocity */
+.vel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.vel-value { font-size: 22px; font-weight: 700; }
+.vel-trend { font-size: 13px; text-transform: capitalize; }
+.vel-predict { font-size: 12px; color: var(--text-muted); }
+/* Personal Enemies */
+.enemy-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.enemy-row:last-child { border-bottom: none; }
+.enemy-champ { flex: 1; font-size: 13px; font-weight: 500; }
+.enemy-games { font-size: 12px; }
+.enemy-wr { font-size: 13px; font-weight: 700; min-width: 50px; text-align: right; }
+
+.cb-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.cb-row:last-child { border-bottom: none; }
+.cb-label { font-weight: 500; }
+.cb-value { font-size: 15px; font-weight: 700; }
+.cb-sub { font-size: 10px; color: var(--text-muted); text-align: right; }
 
 /* Duo partner rows */
 .duo-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; }
@@ -715,6 +729,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 .fav-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 2px 6px; line-height: 1; transition: transform 0.15s; }
 .fav-btn:hover { transform: scale(1.2); }
 .fav-btn.active { color: var(--gold); }
+/* recent-select inline style defined inline */
 .fav-section { margin-bottom: 24px; }
 .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 .fav-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; position: relative; }
@@ -852,6 +867,90 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   .section-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .section-tab { white-space: nowrap; }
 }
+
+/* Quick Win: Autocomplete dropdown */
+.ac-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+  max-height: 280px; overflow-y: auto; display: none;
+}
+.ac-dropdown.visible { display: block; }
+.ac-item {
+  padding: 8px 16px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center;
+}
+.ac-item:hover, .ac-item.active { background: rgba(200,155,60,0.1); }
+.ac-item .ac-name { font-weight: 600; }
+.ac-item .ac-meta { font-size: 11px; color: var(--text-muted); }
+.search-bar { position: relative; }
+
+/* Quick Win: My Dashboard button */
+.my-dash-btn {
+  background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
+  padding: 10px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: var(--font); white-space: nowrap;
+}
+.my-dash-btn:hover { border-color: var(--gold); color: var(--text); }
+.my-dash-btn.saved { border-color: var(--gold); color: var(--gold); }
+
+/* Quick Win: Win Condition Tags */
+.wc-tag {
+  display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; margin-left: 4px; vertical-align: middle;
+}
+.wc-snowball { background: rgba(59,130,246,0.15); color: var(--blue); }
+.wc-comeback { background: rgba(168,85,247,0.15); color: var(--purple); }
+.wc-vision-carry { background: rgba(34,197,94,0.15); color: var(--green); }
+.wc-kda-player { background: rgba(200,155,60,0.15); color: var(--gold); }
+.wc-stomp { background: rgba(239,68,68,0.15); color: var(--red); }
+.wc-team-fight { background: rgba(34,197,94,0.15); color: var(--green); }
+
+/* Quick Win: Playstyle badge */
+.playstyle-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  background: rgba(200,155,60,0.08); border: 1px solid rgba(200,155,60,0.2);
+  border-radius: 8px; font-size: 12px;
+}
+.playstyle-icon { font-size: 16px; }
+.playstyle-name { font-weight: 700; color: var(--gold); }
+.playstyle-desc { font-size: 10px; color: var(--text-muted); }
+
+/* Quick Win: Tilt meter */
+.tilt-meter { margin-top: 8px; }
+.tilt-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); overflow: hidden; }
+.tilt-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.tilt-label { display: flex; justify-content: space-between; font-size: 10px; margin-top: 2px; }
+
+/* Quick Win: Compact match cards */
+.match-cards-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;
+}
+.match-card-compact {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; cursor: pointer; transition: border-color 0.15s;
+}
+.match-card-compact:hover { border-color: var(--gold); }
+.match-card-compact.win { border-left: 3px solid var(--green); }
+.match-card-compact.loss { border-left: 3px solid var(--red); }
+.mcc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.mcc-champ { width: 32px; height: 32px; border-radius: 6px; }
+.mcc-kda { font-size: 12px; font-weight: 600; }
+.mcc-meta { font-size: 10px; color: var(--text-muted); }
+
+/* Quick Win: Post-game actions */
+.post-game-actions { display: flex; gap: 6px; padding: 8px 20px; border-top: 1px solid var(--border); }
+.pg-btn {
+  background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
+  padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer; font-family: var(--font);
+}
+.pg-btn:hover { border-color: var(--gold); color: var(--text); }
+
+/* Quick Win: View toggle */
+.view-toggle { display: flex; gap: 2px; }
+.view-toggle-btn {
+  background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
+  padding: 4px 8px; font-size: 11px; cursor: pointer;
+}
+.view-toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+.view-toggle-btn:last-child { border-radius: 0 4px 4px 0; }
+.view-toggle-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
 </style>
 {{end}}
 
@@ -870,6 +969,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 <main>
   <!-- Server Status -->
   <div class="server-status-banner" id="server-status"></div>
+
+  <div id="multi-search-container" style="display:none;margin-bottom:16px;">
+    <div class="ext-title">Multi-Search (Lobby)</div>
+    <textarea id="multi-search-input" placeholder="Paste lobby names, one per line (Name#Tag)" rows="5" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;font-family:var(--font);font-size:13px;resize:vertical;"></textarea>
+    <button onclick="doMultiSearch()" style="margin-top:8px;background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">Scout Lobby</button>
+    <div id="multi-search-results" style="margin-top:12px;"></div>
+  </div>
 
   <div class="search-bar">
     <select class="region-select" id="region-select">
@@ -890,8 +996,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       <option value="TW2">TW</option>
       <option value="VN2">VN</option>
     </select>
-    <input type="text" id="search-input" placeholder="Search player... (e.g. Faker#KR1)" />
+    <select id="recent-select" style="display:none;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 8px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;min-width:160px;max-width:220px;">
+      <option value="">Recent searches...</option>
+    </select>
+    <input type="text" id="search-input" placeholder="Search player... (e.g. Faker#KR1)" autocomplete="off" />
     <button id="btn-search">Search</button>
+    <button class="my-dash-btn" id="my-dash-btn" title="Set as My Dashboard">My</button>
+    <div class="ac-dropdown" id="ac-dropdown"></div>
   </div>
 
   <div class="error-msg" id="error-msg"></div>
@@ -900,11 +1011,6 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   <div class="fav-section" id="fav-section" style="display:none;">
     <div class="section-title">Favorites</div>
     <div class="fav-grid" id="fav-grid"></div>
-  </div>
-
-  <div class="recent-searches" id="recent-searches" style="display:none;">
-    <div class="section-title">Recent Searches</div>
-    <div class="recent-grid" id="recent-grid"></div>
   </div>
 
   <div class="profile-card" id="profile-card">
@@ -918,7 +1024,8 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       </div>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:flex-start;">
         <button class="fav-btn" id="fav-toggle" title="Add to favorites">&#9734;</button>
-        <button class="export-btn" id="export-btn" title="Export profile">Export</button>
+        <button class="export-btn" id="export-btn" title="Export profile as text">Export</button>
+        <button class="export-btn" id="export-csv-btn" title="Export matches as CSV">CSV</button>
         <button class="notif-toggle" id="notif-toggle" title="Browser notifications">&#128276; Notify</button>
       </div>
     </div>
@@ -964,6 +1071,25 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     <div class="ext-card" id="ext-streak-timeline"></div>
     <div class="ext-card" id="ext-heatmap" style="grid-column:1/-1;"></div>
     <div class="ext-card" id="ext-lp-chart" style="grid-column:1/-1;"></div>
+    <div class="ext-card" id="ext-lp-velocity"></div>
+    <div class="ext-card" id="ext-personal-enemies"></div>
+    <div class="ext-card" id="ext-comeback"></div>
+    <div class="ext-card" id="ext-records"></div>
+    <div class="ext-card" id="ext-season-history"></div>
+    <div class="ext-card" id="ext-session-summary"></div>
+    <div class="ext-card" id="ext-queue-breakdown"></div>
+    <div class="ext-card" id="ext-role-dist"></div>
+    <div class="ext-card" id="ext-damage-profile"></div>
+    <div class="ext-card" id="ext-duration-analysis"></div>
+    <div class="ext-card" id="ext-best-time"></div>
+    <div class="ext-card" id="ext-surrender-stats"></div>
+    <div class="ext-card" id="ext-spell-analysis"></div>
+    <div class="ext-card" id="ext-vision-trend"></div>
+    <div class="ext-card" id="ext-peer-percentiles"></div>
+    <div class="ext-card" id="ext-early-game"></div>
+    <div class="ext-card" id="ext-objectives"></div>
+    <div class="ext-card" id="ext-tilt-score"></div>
+    <div class="ext-card" id="ext-playstyle"></div>
   </div>
 
   <div class="tilt-banner" id="tilt-banner"></div>
@@ -1020,8 +1146,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           <option value="mid">25-35 min</option>
           <option value="long">&gt; 35 min</option>
         </select>
+        <div class="view-toggle" id="view-toggle">
+          <button class="view-toggle-btn active" data-view="table" title="Table view">&#9776;</button>
+          <button class="view-toggle-btn" data-view="cards" title="Card view">&#9638;</button>
+        </div>
       </div>
     </div>
+    <div class="match-cards-grid" id="match-cards-grid" style="display:none;"></div>
     <table>
       <thead>
         <tr>
@@ -1127,7 +1258,11 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   // ── Theme Toggle (#11) ───────────────────────────
   function initTheme() {
     var saved=localStorage.getItem('lc-theme');
-    if (saved==='light') document.body.classList.add('light-theme');
+    if (saved==='light') {
+      document.body.classList.add('light-theme');
+    } else if (!saved && window.matchMedia && !window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('light-theme');
+    }
     updateThemeIcon();
   }
   function toggleTheme() {
@@ -1237,27 +1372,18 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   function loadRecentSearches() {
     fetch('/api/recent-searches').then(function(r){return r.json();}).then(function(data){
       var searches=data.searches||[];
-      if (searches.length===0) return;
-      var container=document.getElementById('recent-searches');
-      var grid=document.getElementById('recent-grid');
-      container.style.display='';
-      grid.innerHTML='';
+      var sel=document.getElementById('recent-select');
+      sel.innerHTML='<option value="">Recent searches...</option>';
+      if (searches.length===0) { sel.style.display='none'; return; }
       for (var i=0;i<searches.length;i++) {
         var s=searches[i];
-        var rankStr='Unranked', wrStr='';
-        if (s.solo_tier) {
-          rankStr=s.solo_tier+' '+s.solo_rank+' '+(s.solo_lp||0)+' LP';
-          var total=(s.solo_wins||0)+(s.solo_losses||0);
-          if (total>0) wrStr=Math.round(s.solo_wins/total*100)+'% WR ('+s.solo_wins+'W '+s.solo_losses+'L)';
-        } else if (s.flex_tier) {
-          rankStr=s.flex_tier+' '+s.flex_rank+' '+(s.flex_lp||0)+' LP (Flex)';
-        }
-        var card=document.createElement('div');
-        card.className='recent-card';
-        card.innerHTML='<div class="recent-name">'+esc(s.game_name)+' <span class="tag">#'+esc(s.tag_line)+'</span></div><div class="recent-rank">'+esc(rankStr)+'</div>'+(wrStr?'<div class="recent-wr">'+esc(wrStr)+'</div>':'');
-        card.addEventListener('click',(function(name,tag){return function(){document.getElementById('search-input').value=name+'#'+tag;doSearch();};})(s.game_name,s.tag_line));
-        grid.appendChild(card);
+        var label=s.game_name+'#'+s.tag_line;
+        var opt=document.createElement('option');
+        opt.value=label;
+        opt.textContent=label;
+        sel.appendChild(opt);
       }
+      sel.style.display='';
     }).catch(function(){});
   }
 
@@ -1280,6 +1406,13 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         if (data.items_data) itemData=data.items_data;
         if (data.runes_data) runeData=data.runes_data;
         currentPuuid=data.account&&data.account.puuid;
+        // Update URL state so the profile link is shareable
+        if (data.account&&data.account.game_name) {
+          var p=new URLSearchParams();
+          p.set('player',data.account.game_name+'#'+data.account.tag_line);
+          p.set('platform',platform);
+          history.pushState({},'','?'+p.toString());
+        }
         renderProfile(data);
         checkLiveGamePoll(data);
         loadExtendedStats();
@@ -1449,7 +1582,12 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         rankHtml='<span class="live-player-rank">'+esc(r.tier)+' '+esc(r.rank)+' '+(r.lp||0)+' LP</span>';
       }
       var isMe=currentPuuid&&p.puuid===currentPuuid;
-      var row='<div class="live-player'+(isMe?' is-me':'')+'">'+icon+spells+runesHtml+'<span>'+esc(p.champion_name)+'</span> <span class="muted">'+esc(p.summoner_name||'')+'</span>'+rankHtml+'</div>';
+      var champWrHtml='';
+      if (p.champion_wr!==undefined&&p.champion_wr!==null) champWrHtml='<span class="live-champ-wr" style="color:'+(p.champion_wr>=50?'var(--green)':'var(--red)')+'">'+p.champion_wr+'% on champ</span>';
+      var masteryHtml=p.mastery_level?'<span class="live-mastery muted">M'+p.mastery_level+'</span>':'';
+      var streakHtml='';
+      if (p.streak&&Math.abs(p.streak)>=3) { var sClr=p.streak>0?'var(--green)':'var(--red)'; streakHtml='<span style="color:'+sClr+';font-size:11px;">'+(p.streak>0?p.streak+'W':Math.abs(p.streak)+'L')+'</span>'; }
+      var row='<div class="live-player'+(isMe?' is-me':'')+'">'+icon+spells+runesHtml+'<span>'+esc(p.champion_name)+'</span>'+masteryHtml+' <span class="muted">'+esc(p.summoner_name||'')+'</span>'+rankHtml+champWrHtml+streakHtml+'</div>';
       if (p.team_id===100) blueHtml+=row; else redHtml+=row;
     }
     // Bans
@@ -2291,7 +2429,9 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         var hasWr=(data.wr_history&&data.wr_history.length>0);
         var hasLp=(data.lp_history&&data.lp_history.solo&&data.lp_history.solo.length>1)||(data.lp_history&&data.lp_history.flex&&data.lp_history.flex.length>1);
         var hasHeatmap=allMatches.length>0;
-        if (!hasDuo&&!hasWr&&!hasLp&&!hasHeatmap) { section.classList.remove('visible'); return; }
+        var hasW4=(data.queue_breakdown&&data.queue_breakdown.length>0)||(data.role_distribution&&data.role_distribution.length>0)||(data.surrender_stats&&data.surrender_stats.total_games)||(data.time_analysis&&data.time_analysis.by_hour&&data.time_analysis.by_hour.length>0);
+        var hasW5=(data.peer_percentiles&&data.peer_percentiles.sample_size)||(data.vision_trend&&data.vision_trend.length>0)||(data.early_game&&data.early_game.total_games);
+        if (!hasDuo&&!hasWr&&!hasLp&&!hasHeatmap&&!hasW4&&!hasW5) { section.classList.remove('visible'); return; }
         section.classList.add('visible');
 
         // Duo Partners
@@ -2385,18 +2525,20 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         var hmEl=document.getElementById('ext-heatmap');
         if (hasHeatmap) {
           var DAY_NAMES=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-          var grid={}; var maxCount=0;
+          var gridCount={}; var gridWins={}; var maxCount=0;
           for (var hi=0;hi<allMatches.length;hi++) {
-            var gc=allMatches[hi].game_creation;
+            var hm=allMatches[hi];
+            var gc=hm.game_creation;
             if (!gc) continue;
             var dt=new Date(gc);
             var dow=(dt.getDay()+6)%7; // Mon=0..Sun=6
             var hr=dt.getHours();
             var key=dow+'_'+hr;
-            grid[key]=(grid[key]||0)+1;
-            if(grid[key]>maxCount) maxCount=grid[key];
+            gridCount[key]=(gridCount[key]||0)+1;
+            if (hm.win) gridWins[key]=(gridWins[key]||0)+1;
+            if(gridCount[key]>maxCount) maxCount=gridCount[key];
           }
-          var hmHtml='<div class="ext-title">Activity Heatmap</div><div class="heatmap-grid">';
+          var hmHtml='<div class="ext-title">Activity &amp; Win Rate Heatmap <span style="font-size:10px;color:var(--text-muted);font-weight:400">green=good WR · red=bad WR · gold=even</span></div><div class="heatmap-grid">';
           // Hour labels row
           hmHtml+='<div></div>';
           for (var hh=0;hh<24;hh++) hmHtml+='<div class="heatmap-hour-label">'+(hh%3===0?hh:'')+'</div>';
@@ -2404,10 +2546,23 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
           for (var dd=0;dd<7;dd++) {
             hmHtml+='<div class="heatmap-day">'+DAY_NAMES[dd]+'</div>';
             for (var hh=0;hh<24;hh++) {
-              var cnt=grid[dd+'_'+hh]||0;
-              var intensity=maxCount>0?cnt/maxCount:0;
-              var bg=cnt===0?'rgba(255,255,255,0.03)':'rgba(200,155,60,'+Math.max(0.15,intensity).toFixed(2)+')';
-              hmHtml+='<div class="heatmap-cell" style="background:'+bg+';" title="'+DAY_NAMES[dd]+' '+hh+':00 — '+cnt+' game'+(cnt!==1?'s':'')+'"></div>';
+              var cnt=gridCount[dd+'_'+hh]||0;
+              var wins=gridWins[dd+'_'+hh]||0;
+              var bg,hmTitle;
+              if (cnt===0) {
+                bg='rgba(255,255,255,0.03)';
+                hmTitle=DAY_NAMES[dd]+' '+hh+':00 — no games';
+              } else {
+                var wr=wins/cnt;
+                var intensity=Math.max(0.2,cnt/maxCount);
+                var cr,cg,cb;
+                if (wr>=0.6) { cr=34;cg=197;cb=94; }
+                else if (wr<=0.4) { cr=239;cg=68;cb=68; }
+                else { cr=200;cg=155;cb=60; }
+                bg='rgba('+cr+','+cg+','+cb+','+intensity.toFixed(2)+')';
+                hmTitle=DAY_NAMES[dd]+' '+hh+':00 — '+cnt+' game'+(cnt!==1?'s':'')+' ('+Math.round(wr*100)+'% WR)';
+              }
+              hmHtml+='<div class="heatmap-cell" style="background:'+bg+';" title="'+hmTitle+'"></div>';
             }
           }
           hmHtml+='</div>';
@@ -2494,6 +2649,423 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
         } else {
           lpEl.style.display='none';
         }
+
+        // ── LP Velocity (#new) ──────────────────────────
+        var velEl=document.getElementById('ext-lp-velocity');
+        if (velEl&&data.lp_velocity) {
+          var v=data.lp_velocity;
+          var vColor=v.lp_per_day>0?'var(--green)':v.lp_per_day<0?'var(--red)':'var(--text-muted)';
+          var trendIcon=v.trend==='climbing'?'↑':v.trend==='falling'?'↓':'→';
+          var predHtml=v.days_to_next_div?'<div class="vel-predict">Next division in ~<strong>'+v.days_to_next_div+'d</strong></div>':'';
+          velEl.innerHTML='<div class="ext-title">LP Velocity</div>'
+            +'<div class="vel-row"><span class="vel-value" style="color:'+vColor+'">'+(v.lp_per_day>0?'+':'')+v.lp_per_day+' LP/day</span>'
+            +'<span class="vel-trend" style="color:'+vColor+'">'+trendIcon+' '+v.trend+'</span></div>'
+            +predHtml;
+          velEl.style.display='';
+        } else if (velEl) {
+          velEl.style.display='none';
+        }
+
+        // ── Personal Enemies (#new) ─────────────────────
+        var enemyEl=document.getElementById('ext-personal-enemies');
+        if (enemyEl&&data.personal_enemies&&data.personal_enemies.length>0) {
+          var eHtml='<div class="ext-title">&#128480; Personal Enemies</div>';
+          for (var ei=0;ei<data.personal_enemies.length;ei++) {
+            var en=data.personal_enemies[ei];
+            var eWr=Math.round(tonumberOrZero(en.win_rate));
+            var eClr=eWr<40?'var(--red)':eWr<50?'var(--yellow)':'var(--green)';
+            eHtml+='<div class="enemy-row">'
+              +'<span class="enemy-champ">'+esc(en.enemy_champion||'?')+'</span>'
+              +'<span class="enemy-games muted">'+tonumberOrZero(en.games)+'G</span>'
+              +'<span class="enemy-wr" style="color:'+eClr+'">'+eWr+'% WR</span>'
+            +'</div>';
+          }
+          enemyEl.innerHTML=eHtml;
+          enemyEl.style.display='';
+        } else if (enemyEl) {
+          enemyEl.style.display='none';
+        }
+
+        // ── Records (#11) ────────────────────────────────
+        var recEl=document.getElementById('ext-records');
+        if (recEl&&data.records&&data.records.length>0) {
+          var rHtml='<div class="ext-title">Personal Records</div>';
+          var recLabels={most_kills:'Most Kills',most_assists:'Most Assists',most_cs:'Most CS',most_damage:'Most Damage',most_gold:'Most Gold',best_kda:'Best KDA Score',most_vision:'Best Vision',best_cs_per_min:'Best CS/min',lowest_deaths:'Fewest Deaths',penta_kills:'Pentakills'};
+          for (var ri=0;ri<data.records.length;ri++) {
+            var rec=data.records[ri];
+            var label=recLabels[rec.record_type]||rec.record_type;
+            var val=rec.record_type==='best_cs_per_min'?parseFloat(rec.value).toFixed(1):Math.round(rec.value);
+            if (rec.record_type==='most_damage'||rec.record_type==='most_gold') val=fmtNumber(rec.value);
+            rHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span>'+label+'</span><span><strong>'+val+'</strong>'+(rec.champion_name?' <span class="muted">'+esc(rec.champion_name)+'</span>':'')+'</span></div>';
+          }
+          recEl.innerHTML=rHtml;
+          recEl.style.display='';
+        } else if (recEl) { recEl.style.display='none'; }
+
+        // ── Season History (#6) ──────────────────────────
+        var shEl=document.getElementById('ext-season-history');
+        if (shEl&&data.season_history&&data.season_history.length>0) {
+          var shHtml='<div class="ext-title">Season History</div>';
+          for (var si=0;si<data.season_history.length;si++) {
+            var sh=data.season_history[si];
+            var qName=sh.queue_type==='RANKED_SOLO_5x5'?'Solo':'Flex';
+            var tierClr={'IRON':'#8b7355','BRONZE':'#cd7f32','SILVER':'#c0c0c0','GOLD':'#ffd700','PLATINUM':'#00cec9','EMERALD':'#2ecc71','DIAMOND':'#9b59b6','MASTER':'#e74c3c','GRANDMASTER':'#e74c3c','CHALLENGER':'#f1c40f'};
+            var clr=tierClr[sh.peak_tier]||'var(--text)';
+            shHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span>'+esc(sh.season)+' <span class="muted">'+qName+'</span></span><span style="color:'+clr+'">'+esc(sh.peak_tier||'')+' '+esc(sh.peak_rank||'')+' '+(sh.peak_lp||0)+' LP</span></div>';
+          }
+          shEl.innerHTML=shHtml;
+          shEl.style.display='';
+        } else if (shEl) { shEl.style.display='none'; }
+
+        // ── Session Summary (#3) ─────────────────────────
+        var sessEl=document.getElementById('ext-session-summary');
+        if (sessEl&&data.today) {
+          var t=data.today;
+          var tGames=tonumberOrZero(t.games);
+          var tWins=tonumberOrZero(t.wins);
+          var tLosses=tGames-tWins;
+          var tWr=tGames>0?Math.round(tWins/tGames*100):0;
+          var wrClr=tWr>=50?'var(--green)':'var(--red)';
+          var sessHtml='<div class="ext-title">Today\'s Session</div>';
+          sessHtml+='<div style="display:flex;gap:16px;align-items:center;">';
+          sessHtml+='<div style="font-size:28px;font-weight:700;color:'+wrClr+'">'+tWr+'%</div>';
+          sessHtml+='<div><div style="font-size:13px;">'+tGames+' games</div>';
+          sessHtml+='<div style="font-size:12px;"><span style="color:var(--green)">'+tWins+'W</span> <span style="color:var(--red)">'+tLosses+'L</span></div>';
+          if (t.top_champion) sessHtml+='<div style="font-size:11px;" class="muted">Most played: '+esc(t.top_champion)+'</div>';
+          sessHtml+='</div></div>';
+          // LP velocity inline
+          if (data.lp_velocity&&data.lp_velocity.lp_per_day) {
+            var vClr=data.lp_velocity.lp_per_day>0?'var(--green)':'var(--red)';
+            sessHtml+='<div style="margin-top:8px;font-size:11px;">LP trend: <strong style="color:'+vClr+'">'+(data.lp_velocity.lp_per_day>0?'+':'')+data.lp_velocity.lp_per_day+' LP/day</strong>';
+            if (data.lp_velocity.days_to_next_div) sessHtml+=' (next div ~'+data.lp_velocity.days_to_next_div+'d)';
+            sessHtml+='</div>';
+          }
+          // Daily tip
+          if (data.tip) sessHtml+='<div style="margin-top:8px;padding:8px;background:rgba(200,155,60,0.08);border-radius:6px;font-size:11px;color:var(--gold);">'+esc(data.tip)+'</div>';
+          sessEl.innerHTML=sessHtml;
+          sessEl.style.display='';
+        } else if (sessEl) { sessEl.style.display='none'; }
+
+        // Comeback Rate / Throw Rate (computed from allMatches fields)
+        var cbEl=document.getElementById('ext-comeback');
+        if (cbEl&&allMatches.length>=5) {
+          var comebacks=0,throws=0,validGames=0;
+          for (var ci=0;ci<allMatches.length;ci++) {
+            var cm=allMatches[ci];
+            var csAdv=tonumberOrZero(cm.max_cs_advantage);
+            var lvlAdv=tonumberOrZero(cm.max_level_lead);
+            var won=cm.win?1:0;
+            // Only count games where we have lead data
+            if (csAdv===0&&lvlAdv===0) continue;
+            validGames++;
+            var wasAhead=(csAdv>=10||lvlAdv>=2);
+            var wasBehind=(csAdv<=-10||lvlAdv<=-2);
+            if (wasBehind&&won) comebacks++;
+            if (wasAhead&&!won) throws++;
+          }
+          if (validGames>0) {
+            var cbRate=Math.round(comebacks/allMatches.length*100);
+            var throwRate=Math.round(throws/allMatches.length*100);
+            cbEl.innerHTML='<div class="ext-title">&#9889; Mental Fortitude</div>'+
+              '<div class="cb-row">'+
+                '<div><div class="cb-label" style="color:var(--purple)">Comeback Rate</div><div class="cb-sub">Won while behind</div></div>'+
+                '<div style="text-align:right"><div class="cb-value" style="color:var(--purple)">'+cbRate+'%</div><div class="cb-sub">'+comebacks+' of '+allMatches.length+' games</div></div>'+
+              '</div>'+
+              '<div class="cb-row">'+
+                '<div><div class="cb-label" style="color:var(--red)">Throw Rate</div><div class="cb-sub">Lost while ahead</div></div>'+
+                '<div style="text-align:right"><div class="cb-value" style="color:var(--red)">'+throwRate+'%</div><div class="cb-sub">'+throws+' of '+allMatches.length+' games</div></div>'+
+              '</div>';
+            cbEl.style.display='';
+          } else {
+            cbEl.style.display='none';
+          }
+        } else if (cbEl) {
+          cbEl.style.display='none';
+        }
+
+        // ── Wave 4: Queue Breakdown ──────────────────────
+        var qbEl=document.getElementById('ext-queue-breakdown');
+        if (qbEl&&data.queue_breakdown&&data.queue_breakdown.length>0) {
+          var qbHtml='<div class="ext-title">Queue Breakdown</div>';
+          for (var qi=0;qi<data.queue_breakdown.length;qi++) {
+            var qb=data.queue_breakdown[qi];
+            var qWr=tonumberOrZero(qb.winrate);
+            var qClr=qWr>=50?'var(--green)':'var(--red)';
+            qbHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">'
+              +'<span>'+esc(qb.queue_name||'Unknown')+'</span>'
+              +'<span><strong>'+qb.games+'</strong>G '
+              +'<span style="color:'+qClr+'">'+qWr+'%</span> '
+              +'<span class="muted">'+tonumberOrZero(qb.avg_kills).toFixed(1)+'/'+tonumberOrZero(qb.avg_deaths).toFixed(1)+'/'+tonumberOrZero(qb.avg_assists).toFixed(1)+'</span>'
+              +'</span></div>';
+          }
+          qbEl.innerHTML=qbHtml;
+          qbEl.style.display='';
+        } else if (qbEl) { qbEl.style.display='none'; }
+
+        // ── Wave 4: Role Distribution ────────────────────
+        var rdEl=document.getElementById('ext-role-dist');
+        if (rdEl&&data.role_distribution&&data.role_distribution.length>0) {
+          var rdHtml='<div class="ext-title">Role Distribution</div><div style="display:flex;gap:6px;flex-wrap:wrap;">';
+          var roleIcons={TOP:'⬆',JUNGLE:'🌲',MIDDLE:'🔮',BOTTOM:'🏹',UTILITY:'🛡'};
+          for (var ri=0;ri<data.role_distribution.length;ri++) {
+            var rd=data.role_distribution[ri];
+            var rWr=tonumberOrZero(rd.winrate);
+            var rClr=rWr>=50?'var(--green)':'var(--red)';
+            var posName=rd.position==='UTILITY'?'SUP':rd.position==='BOTTOM'?'ADC':rd.position==='MIDDLE'?'MID':(rd.position||'?');
+            var icon=roleIcons[rd.position]||'';
+            rdHtml+='<div style="background:var(--card-bg);padding:6px 10px;border-radius:6px;text-align:center;min-width:60px;">'
+              +'<div style="font-size:14px;">'+icon+'</div>'
+              +'<div style="font-size:11px;font-weight:600;">'+posName+'</div>'
+              +'<div style="font-size:12px;">'+rd.games+'G</div>'
+              +'<div style="font-size:11px;color:'+rClr+'">'+rWr+'%</div>'
+              +'</div>';
+          }
+          rdHtml+='</div>';
+          rdEl.innerHTML=rdHtml;
+          rdEl.style.display='';
+        } else if (rdEl) { rdEl.style.display='none'; }
+
+        // ── Wave 4: Damage Profile ───────────────────────
+        var dpEl=document.getElementById('ext-damage-profile');
+        if (dpEl&&data.damage_profile&&data.damage_profile.avg_damage_dealt) {
+          var dp=data.damage_profile;
+          var phys=tonumberOrZero(dp.avg_physical_pct);
+          var magic=tonumberOrZero(dp.avg_magic_pct);
+          var trueDmg=tonumberOrZero(dp.avg_true_pct);
+          var dpHtml='<div class="ext-title">Damage Profile</div>';
+          dpHtml+='<div style="height:14px;border-radius:7px;overflow:hidden;display:flex;margin-bottom:6px;">';
+          dpHtml+='<div style="width:'+phys+'%;background:#e74c3c;" title="Physical '+phys.toFixed(1)+'%"></div>';
+          dpHtml+='<div style="width:'+magic+'%;background:#3498db;" title="Magic '+magic.toFixed(1)+'%"></div>';
+          dpHtml+='<div style="width:'+trueDmg+'%;background:#f1f1f1;" title="True '+trueDmg.toFixed(1)+'%"></div>';
+          dpHtml+='</div>';
+          dpHtml+='<div style="display:flex;justify-content:space-between;font-size:11px;">';
+          dpHtml+='<span style="color:#e74c3c;">Physical '+phys.toFixed(0)+'%</span>';
+          dpHtml+='<span style="color:#3498db;">Magic '+magic.toFixed(0)+'%</span>';
+          dpHtml+='<span style="color:#ccc;">True '+trueDmg.toFixed(0)+'%</span>';
+          dpHtml+='</div>';
+          dpHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">Avg dealt: '+fmtNumber(tonumberOrZero(dp.avg_damage_dealt))+' · Avg taken: '+fmtNumber(tonumberOrZero(dp.avg_damage_taken))+'</div>';
+          dpEl.innerHTML=dpHtml;
+          dpEl.style.display='';
+        } else if (dpEl) { dpEl.style.display='none'; }
+
+        // ── Wave 4: Duration Analysis ────────────────────
+        var daEl=document.getElementById('ext-duration-analysis');
+        if (daEl&&data.duration_analysis&&data.duration_analysis.length>0) {
+          var daHtml='<div class="ext-title">Win Rate by Game Length</div>';
+          for (var di=0;di<data.duration_analysis.length;di++) {
+            var da=data.duration_analysis[di];
+            var daWr=tonumberOrZero(da.winrate);
+            var daClr=daWr>=50?'var(--green)':'var(--red)';
+            var barW=Math.max(5,Math.min(100,daWr));
+            daHtml+='<div style="display:flex;align-items:center;gap:8px;padding:2px 0;font-size:12px;">'
+              +'<span style="width:55px;">'+esc(da.bucket)+'</span>'
+              +'<div style="flex:1;height:12px;background:rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;">'
+              +'<div style="width:'+barW+'%;height:100%;background:'+daClr+';border-radius:6px;"></div></div>'
+              +'<span style="color:'+daClr+';width:35px;text-align:right;">'+daWr+'%</span>'
+              +'<span class="muted" style="width:25px;text-align:right;">'+da.games+'</span>'
+              +'</div>';
+          }
+          daEl.innerHTML=daHtml;
+          daEl.style.display='';
+        } else if (daEl) { daEl.style.display='none'; }
+
+        // ── Wave 4: Best Time to Play ────────────────────
+        var btEl=document.getElementById('ext-best-time');
+        if (btEl&&data.time_analysis&&data.time_analysis.by_hour&&data.time_analysis.by_hour.length>0) {
+          var ta=data.time_analysis;
+          var btHtml='<div class="ext-title">Best Time to Play</div>';
+          if (ta.best_hour!==null&&ta.best_hour!==undefined) {
+            btHtml+='<div style="font-size:12px;margin-bottom:6px;">Best: <strong style="color:var(--green)">'+ta.best_hour+':00</strong>';
+            if (ta.worst_hour!==null&&ta.worst_hour!==undefined) btHtml+=' · Worst: <strong style="color:var(--red)">'+ta.worst_hour+':00</strong>';
+            btHtml+='</div>';
+          }
+          // Mini hour chart (24 bars)
+          btHtml+='<div style="display:flex;gap:1px;height:40px;align-items:flex-end;">';
+          var maxG=1;
+          for (var hi=0;hi<ta.by_hour.length;hi++) { if(tonumberOrZero(ta.by_hour[hi].games)>maxG) maxG=tonumberOrZero(ta.by_hour[hi].games); }
+          // Create 24 slots
+          var hourMap={};
+          for (var hi=0;hi<ta.by_hour.length;hi++) hourMap[ta.by_hour[hi].hour]=ta.by_hour[hi];
+          for (var hh=0;hh<24;hh++) {
+            var hd=hourMap[hh];
+            var hGames=hd?tonumberOrZero(hd.games):0;
+            var hWr=hd?tonumberOrZero(hd.winrate):50;
+            var hH=hGames>0?Math.max(4,Math.round(hGames/maxG*36)):2;
+            var hClr=hGames===0?'rgba(255,255,255,0.05)':hWr>=55?'var(--green)':hWr<=45?'var(--red)':'var(--gold)';
+            btHtml+='<div style="flex:1;height:'+hH+'px;background:'+hClr+';border-radius:2px;" title="'+hh+':00 — '+hGames+'G'+(hGames>0?' ('+hWr+'% WR)':'')+'"></div>';
+          }
+          btHtml+='</div>';
+          btHtml+='<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:2px;"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>';
+          btEl.innerHTML=btHtml;
+          btEl.style.display='';
+        } else if (btEl) { btEl.style.display='none'; }
+
+        // ── Wave 4: Surrender Stats ──────────────────────
+        var ssEl=document.getElementById('ext-surrender-stats');
+        if (ssEl&&data.surrender_stats&&data.surrender_stats.total_games) {
+          var ss=data.surrender_stats;
+          var ssHtml='<div class="ext-title">Game Outcomes</div>';
+          ssHtml+='<div style="display:flex;gap:12px;font-size:12px;flex-wrap:wrap;">';
+          ssHtml+='<div><span class="muted">Surrender Rate</span> <strong>'+tonumberOrZero(ss.surrender_rate).toFixed(0)+'%</strong> ('+tonumberOrZero(ss.surrenders)+')</div>';
+          ssHtml+='<div><span class="muted">First Blood</span> <strong>'+tonumberOrZero(ss.first_blood_rate).toFixed(0)+'%</strong> ('+tonumberOrZero(ss.first_bloods)+')</div>';
+          if (tonumberOrZero(ss.remakes)>0) ssHtml+='<div><span class="muted">Remakes</span> <strong>'+ss.remakes+'</strong></div>';
+          ssHtml+='</div>';
+          ssEl.innerHTML=ssHtml;
+          ssEl.style.display='';
+        } else if (ssEl) { ssEl.style.display='none'; }
+
+        // ── Wave 4: Spell Analysis ───────────────────────
+        var spEl=document.getElementById('ext-spell-analysis');
+        if (spEl&&data.spell_analysis&&data.spell_analysis.length>0) {
+          var spHtml='<div class="ext-title">Summoner Spells</div>';
+          for (var si=0;si<Math.min(data.spell_analysis.length,5);si++) {
+            var sp=data.spell_analysis[si];
+            var spWr=tonumberOrZero(sp.winrate);
+            var spClr=spWr>=50?'var(--green)':'var(--red)';
+            spHtml+='<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;">'
+              +'<span>'+esc(sp.spell1_name||'')+' + '+esc(sp.spell2_name||'')+'</span>'
+              +'<span><strong>'+sp.games+'</strong>G <span style="color:'+spClr+'">'+spWr+'%</span></span>'
+              +'</div>';
+          }
+          spEl.innerHTML=spHtml;
+          spEl.style.display='';
+        } else if (spEl) { spEl.style.display='none'; }
+
+        // ── Wave 5: Vision Trend ─────────────────────────
+        var vtEl=document.getElementById('ext-vision-trend');
+        if (vtEl&&data.vision_trend&&data.vision_trend.length>0) {
+          var vt=data.vision_trend;
+          var vtHtml='<div class="ext-title">Vision Trend (Last '+vt.length+' Games)</div>';
+          // Mini bar chart of vision per minute
+          var maxVpm=0.1;
+          for (var vi=0;vi<vt.length;vi++) { var vpm=tonumberOrZero(vt[vi].vision_per_min); if(vpm>maxVpm) maxVpm=vpm; }
+          vtHtml+='<div style="display:flex;gap:2px;height:30px;align-items:flex-end;">';
+          for (var vi=vt.length-1;vi>=0;vi--) {
+            var vpm=tonumberOrZero(vt[vi].vision_per_min);
+            var vH=Math.max(3,Math.round(vpm/maxVpm*26));
+            var vClr=vpm>=1.5?'var(--green)':vpm>=0.8?'var(--gold)':'var(--red)';
+            vtHtml+='<div style="flex:1;height:'+vH+'px;background:'+vClr+';border-radius:2px;" title="'+esc(vt[vi].champion_name||'')+' — VS: '+vt[vi].vision_score+' ('+vpm+'/min)"></div>';
+          }
+          vtHtml+='</div>';
+          // Averages
+          var avgVs=0,avgWp=0,avgCw=0;
+          for (var vi=0;vi<vt.length;vi++) {avgVs+=tonumberOrZero(vt[vi].vision_score);avgWp+=tonumberOrZero(vt[vi].wards_placed);avgCw+=tonumberOrZero(vt[vi].control_wards);}
+          avgVs=Math.round(avgVs/vt.length);avgWp=Math.round(avgWp/vt.length*10)/10;avgCw=Math.round(avgCw/vt.length*10)/10;
+          vtHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">Avg VS: '+avgVs+' · Wards/g: '+avgWp+' · CW/g: '+avgCw+'</div>';
+          vtEl.innerHTML=vtHtml;
+          vtEl.style.display='';
+        } else if (vtEl) { vtEl.style.display='none'; }
+
+        // ── Wave 5: Peer Percentiles ─────────────────────
+        var ppEl=document.getElementById('ext-peer-percentiles');
+        if (ppEl&&data.peer_percentiles&&data.peer_percentiles.sample_size) {
+          var pp=data.peer_percentiles;
+          var ppHtml='<div class="ext-title">Peer Comparison <span style="font-size:10px;color:var(--text-muted);font-weight:400">(vs '+pp.sample_size+' players'+(pp.tier?' · '+pp.tier:'')+')</span></div>';
+          var metrics=[
+            {label:'CS/min',val:pp.cs_per_min},
+            {label:'Vision',val:pp.vision},
+            {label:'KDA',val:pp.kda},
+            {label:'Damage',val:pp.damage},
+            {label:'Kill Part.',val:pp.kill_participation}
+          ];
+          for (var pi=0;pi<metrics.length;pi++) {
+            var pm=metrics[pi];
+            var pv=tonumberOrZero(pm.val);
+            var pClr=pv>=75?'var(--green)':pv>=50?'var(--gold)':'var(--red)';
+            ppHtml+='<div style="display:flex;align-items:center;gap:8px;padding:2px 0;font-size:12px;">'
+              +'<span style="width:60px;">'+pm.label+'</span>'
+              +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden;">'
+              +'<div style="width:'+pv+'%;height:100%;background:'+pClr+';border-radius:5px;"></div></div>'
+              +'<span style="color:'+pClr+';width:35px;text-align:right;font-weight:600;">'+pv+'%</span>'
+              +'</div>';
+          }
+          ppEl.innerHTML=ppHtml;
+          ppEl.style.display='';
+        } else if (ppEl) { ppEl.style.display='none'; }
+
+        // ── Wave 5: Early Game Stats ─────────────────────
+        var egEl=document.getElementById('ext-early-game');
+        if (egEl&&data.early_game&&data.early_game.total_games) {
+          var eg=data.early_game;
+          var egHtml='<div class="ext-title">Early Game Averages <span style="font-size:10px;color:var(--text-muted);font-weight:400">('+eg.total_games+' games)</span></div>';
+          egHtml+='<div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;">';
+          if (tonumberOrZero(eg.avg_cs_at_10)>0) egHtml+='<div><span class="muted">CS@10</span> <strong>'+tonumberOrZero(eg.avg_cs_at_10).toFixed(0)+'</strong></div>';
+          if (tonumberOrZero(eg.avg_cs_at_15)>0) egHtml+='<div><span class="muted">CS@15</span> <strong>'+tonumberOrZero(eg.avg_cs_at_15).toFixed(0)+'</strong></div>';
+          if (tonumberOrZero(eg.avg_gold_at_10)>0) egHtml+='<div><span class="muted">Gold@10</span> <strong>'+fmtNumber(tonumberOrZero(eg.avg_gold_at_10))+'</strong></div>';
+          var gd10=tonumberOrZero(eg.avg_gold_diff_at_10);
+          if (gd10!==0) {
+            var gdClr=gd10>0?'var(--green)':'var(--red)';
+            egHtml+='<div><span class="muted">Gold Diff@10</span> <strong style="color:'+gdClr+'">'+(gd10>0?'+':'')+gd10+'</strong></div>';
+          }
+          var xd10=tonumberOrZero(eg.avg_xp_diff_at_10);
+          if (xd10!==0) {
+            var xdClr=xd10>0?'var(--green)':'var(--red)';
+            egHtml+='<div><span class="muted">XP Diff@10</span> <strong style="color:'+xdClr+'">'+(xd10>0?'+':'')+xd10+'</strong></div>';
+          }
+          egHtml+='</div>';
+          egEl.innerHTML=egHtml;
+          egEl.style.display='';
+        } else if (egEl) { egEl.style.display='none'; }
+
+        // ── Wave 6: Objective Stats ──────────────────────
+        var objEl=document.getElementById('ext-objectives');
+        if (objEl&&data.objective_stats&&data.objective_stats.total_games) {
+          var os=data.objective_stats;
+          var objHtml='<div class="ext-title">Objective Control</div>';
+          objHtml+='<div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;">';
+          var objItems=[
+            {icon:'🐉',label:'Dragons/g',val:tonumberOrZero(os.avg_dragons).toFixed(1)},
+            {icon:'👑',label:'Barons/g',val:tonumberOrZero(os.avg_barons).toFixed(1)},
+            {icon:'🦀',label:'Heralds/g',val:tonumberOrZero(os.avg_heralds).toFixed(1)},
+            {icon:'🏰',label:'Turrets/g',val:tonumberOrZero(os.avg_turrets).toFixed(1)},
+            {icon:'🔩',label:'Plates/g',val:tonumberOrZero(os.avg_plates).toFixed(1)}
+          ];
+          for (var oi=0;oi<objItems.length;oi++) {
+            var o=objItems[oi];
+            objHtml+='<div style="text-align:center;min-width:55px;"><div style="font-size:16px;">'+o.icon+'</div><div style="font-weight:600;">'+o.val+'</div><div class="muted" style="font-size:10px;">'+o.label+'</div></div>';
+          }
+          objHtml+='</div>';
+          // First blood win conversion
+          var fbWins=tonumberOrZero(os.first_blood_wins);
+          var fbs=tonumberOrZero(os.first_bloods);
+          if (fbs>0) {
+            var fbConv=Math.round(fbWins/fbs*100);
+            objHtml+='<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">First Blood win rate: <strong style="color:'+(fbConv>=60?'var(--green)':'var(--red)')+'">'+fbConv+'%</strong> ('+fbs+' FBs)</div>';
+          }
+          objEl.innerHTML=objHtml;
+          objEl.style.display='';
+        } else if (objEl) { objEl.style.display='none'; }
+
+        // ── Quick Win: Tilt Probability Score ─────────────
+        var tiltEl=document.getElementById('ext-tilt-score');
+        if (tiltEl&&data.tilt_score&&data.tilt_score.recent_games) {
+          var ts=data.tilt_score;
+          var score=ts.score||0;
+          var tClr=score>=70?'var(--red)':score>=40?'var(--yellow)':'var(--green)';
+          var tLabel=score>=80?'On Tilt':score>=60?'Tilting':score>=40?'Neutral':score>=20?'Focused':'Zen';
+          var tHtml='<div class="ext-title">Tilt Probability</div>';
+          tHtml+='<div style="display:flex;align-items:center;gap:12px;">';
+          tHtml+='<div style="font-size:32px;font-weight:700;color:'+tClr+';">'+score+'</div>';
+          tHtml+='<div><div style="font-size:13px;font-weight:600;color:'+tClr+';">'+tLabel+'</div>';
+          if (ts.streak>0) tHtml+='<div style="font-size:11px;color:var(--red);">'+ts.streak+'L streak</div>';
+          tHtml+='<div style="font-size:11px;" class="muted">Last '+ts.recent_games+'g: '+ts.recent_wr+'% WR</div>';
+          tHtml+='</div></div>';
+          tHtml+='<div class="tilt-meter"><div class="tilt-bar"><div class="tilt-bar-fill" style="width:'+score+'%;background:'+tClr+';"></div></div>';
+          tHtml+='<div class="tilt-label"><span>Zen</span><span>Tilt</span></div></div>';
+          tiltEl.innerHTML=tHtml;
+          tiltEl.style.display='';
+        } else if (tiltEl) { tiltEl.style.display='none'; }
+
+        // ── Quick Win: Playstyle Clustering ────────────────
+        var psEl=document.getElementById('ext-playstyle');
+        if (psEl&&data.playstyle) {
+          var ps=data.playstyle;
+          var iconMap={eye:'👁',sword:'⚔',wheat:'🌾',shield:'🛡',anchor:'⚓',dice:'🎲',target:'🎯',heart:'❤',star:'⭐',refresh:'🔄'};
+          var icon=iconMap[ps.icon]||'🎮';
+          psEl.innerHTML='<div class="ext-title">Playstyle</div>'
+            +'<div class="playstyle-badge"><span class="playstyle-icon">'+icon+'</span><div><div class="playstyle-name">'+esc(ps.archetype)+'</div><div class="playstyle-desc">'+esc(ps.description)+'</div></div></div>';
+          psEl.style.display='';
+        } else if (psEl) { psEl.style.display='none'; }
       })
       .catch(function(){ section.classList.remove('visible'); });
   }
@@ -2668,7 +3240,26 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 
       var mScore=m._score||0;
       var tr=document.createElement('tr'); tr.className='match-row';
-      tr.innerHTML='<td><span class="badge '+(m.win?'badge-win':'badge-loss')+'">'+(m.win?'W':'L')+'</span>'+ffStr+comebackStr+' <span class="muted" style="font-size:10px;">'+esc(queueLabel(m))+'</span></td>'+champCell+'<td class="kda '+kdaClass+'">'+k+'/'+d+'/'+a+' <span class="muted">('+kdaVal+')</span>'+kpStr+mkBadge+metaStr+'</td><td><span class="perf-score '+scoreClass(mScore)+'">'+mScore.toFixed(1)+'</span></td><td>'+renderItemsRow(m.items)+'</td><td class="col-cs">'+(m.cs||0)+' <span class="muted">('+(m.cs_per_min||0)+'/m)</span></td><td class="col-dmg">'+fmtNumber(m.total_damage)+'</td><td class="col-gold">'+fmtNumber(m.gold_earned)+(gePct>0?' <span class="gold-eff '+geCls+'">'+gePct+'%</span>':'')+'</td><td class="col-vision">'+(m.vision_score||0)+'</td><td class="col-pos">'+esc(pos)+'</td><td class="col-duration">'+esc(m.game_duration||'—')+'</td>';
+      // LP change per match (#Wave4)
+      var lpChangeStr='';
+      if (m.lp_change&&m.lp_change!==0) {
+        var lpClr=m.lp_change>0?'var(--green)':'var(--red)';
+        lpChangeStr=' <span style="font-size:10px;font-weight:600;color:'+lpClr+'">'+(m.lp_change>0?'+':'')+m.lp_change+'LP</span>';
+      }
+      // Win Condition Tags
+      var wcTags='';
+      if (m.win) {
+        var dur=m.game_duration_raw||0;
+        var kp=m.kill_participation||0;
+        if (k>=10&&dur<1500) wcTags+='<span class="wc-tag wc-snowball">Snowball</span>';
+        else if (m._comeback) wcTags+='<span class="wc-tag wc-comeback">Comeback</span>';
+        if ((m.vision_score||0)>=40&&(m.wards_placed||0)>=15) wcTags+='<span class="wc-tag wc-vision-carry">Vision Carry</span>';
+        if (d<=1&&k+a>=10) wcTags+='<span class="wc-tag wc-kda-player">KDA Player</span>';
+        if (kp>=0.7&&a>=10) wcTags+='<span class="wc-tag wc-team-fight">Team Fighter</span>';
+      } else {
+        if (k>=8&&d>=8) wcTags+='<span class="wc-tag wc-stomp">Coinflip</span>';
+      }
+      tr.innerHTML='<td><span class="badge '+(m.win?'badge-win':'badge-loss')+'">'+(m.win?'W':'L')+'</span>'+lpChangeStr+ffStr+comebackStr+wcTags+' <span class="muted" style="font-size:10px;">'+esc(queueLabel(m))+'</span></td>'+champCell+'<td class="kda '+kdaClass+'">'+k+'/'+d+'/'+a+' <span class="muted">('+kdaVal+')</span>'+kpStr+mkBadge+metaStr+'</td><td><span class="perf-score '+scoreClass(mScore)+'">'+mScore.toFixed(1)+'</span></td><td>'+renderItemsRow(m.items)+'</td><td class="col-cs">'+(m.cs||0)+' <span class="muted">('+(m.cs_per_min||0)+'/m)</span></td><td class="col-dmg">'+fmtNumber(m.total_damage)+'</td><td class="col-gold">'+fmtNumber(m.gold_earned)+(gePct>0?' <span class="gold-eff '+geCls+'">'+gePct+'%</span>':'')+'</td><td class="col-vision">'+(m.vision_score||0)+'</td><td class="col-pos">'+esc(pos)+'</td><td class="col-duration">'+esc(m.game_duration||'—')+'</td>';
       tbody.appendChild(tr);
 
       var detailTr=document.createElement('tr'); detailTr.className='match-detail-row hidden';
@@ -2679,7 +3270,12 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
       var noteVal=(window._matchNotes&&window._matchNotes[m.match_id])||'';
       var noteHtml='<div style="padding:4px 20px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Match Note:</div><input class="match-note-input" id="note-'+esc(m.match_id)+'" value="'+esc(noteVal)+'" placeholder="Add a note..." onblur="saveMatchNote(\''+esc(m.match_id)+'\')" onkeydown="if(event.key===\'Enter\')this.blur()" /></div>';
       if (noteVal) noteHtml='<div class="match-note">'+esc(noteVal)+'</div>'+noteHtml;
-      detailTd.innerHTML='<div class="match-detail"><div class="team-block"><div class="team-label ally">'+(m.win?'Victory':'Defeat')+' — Allied Team</div>'+renderTeamPlayers(m.allies||[])+'</div><div class="team-block"><div class="team-label enemy">'+(!m.win?'Victory':'Defeat')+' — Enemy Team</div>'+renderTeamPlayers(m.enemies||[])+'</div></div>'+tcaHtml+noteHtml+'<div style="padding:8px 20px;border-top:1px solid var(--border);"><button class="tl-btn" id="'+tlBtnId+'">&#9201; Show Timeline</button><div id="'+tlContainerId+'"></div></div>';
+      // Post-Game Quick Actions
+      var pgActions='<div class="post-game-actions">'
+        +'<button class="pg-btn" onclick="event.stopPropagation();copyMatchResult(\''+esc(m.match_id)+'\',\''+esc(m.champion_name)+'\','+k+','+d+','+a+','+(m.win?1:0)+')">Copy Result</button>'
+        +'<button class="pg-btn" onclick="event.stopPropagation();shareMatchUrl(\''+esc(m.match_id)+'\')">Share Link</button>'
+        +'</div>';
+      detailTd.innerHTML='<div class="match-detail"><div class="team-block"><div class="team-label ally">'+(m.win?'Victory':'Defeat')+' — Allied Team</div>'+renderTeamPlayers(m.allies||[])+'</div><div class="team-block"><div class="team-label enemy">'+(!m.win?'Victory':'Defeat')+' — Enemy Team</div>'+renderTeamPlayers(m.enemies||[])+'</div></div>'+tcaHtml+noteHtml+pgActions+'<div style="padding:8px 20px;border-top:1px solid var(--border);"><button class="tl-btn" id="'+tlBtnId+'">&#9201; Show Timeline</button><div id="'+tlContainerId+'"></div></div>';
       detailTr.appendChild(detailTd); tbody.appendChild(detailTr);
 
       (function(row,detail,matchId,btnId,containerId,matchData){
@@ -2700,6 +3296,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
 
   // ── Utilities ──────────────────────────────────────
   function fmtNumber(n) { if(!n) return '0'; if(n>=1000) return (n/1000).toFixed(1)+'k'; return String(n); }
+  function tonumberOrZero(v) { var n=parseFloat(v); return isNaN(n)?0:n; }
   function showError(msg) { var el=document.getElementById('error-msg'); el.textContent=msg; el.classList.add('visible'); }
   function hideError() { document.getElementById('error-msg').classList.remove('visible'); }
   function showLoading(show) { var el=document.getElementById('loading'); if(show) el.classList.remove('hidden'); else el.classList.add('hidden'); }
@@ -2932,6 +3529,33 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
     }
   };
 
+  // ── Export CSV (#25) ──────────────────────────────
+  function exportCSV() {
+    if (!currentPlayerData) return;
+    var matches=currentPlayerData.matches||[];
+    if (matches.length===0) { showToast('No matches to export','error'); return; }
+    var header=['match_id','champion','position','win','kills','deaths','assists','cs','damage','gold','vision','duration_min','queue_id','game_date'];
+    var rows=[header.join(',')];
+    for (var i=0;i<matches.length;i++) {
+      var m=matches[i];
+      var date=m.game_creation?new Date(m.game_creation).toISOString().substring(0,10):'';
+      var dur=m.game_duration?Math.round(m.game_duration/60):0;
+      rows.push([
+        m.match_id||'',m.champion_name||'',m.position||'',m.win?1:0,
+        m.kills||0,m.deaths||0,m.assists||0,m.cs||0,
+        m.total_damage||0,m.gold_earned||0,m.vision_score||0,dur,m.queue_id||0,date
+      ].join(','));
+    }
+    var acc=currentPlayerData.account||{};
+    var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download=(acc.game_name||'matches')+'_matches.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('CSV exported ('+matches.length+' matches)','success');
+  }
+
   // ── Export (#24) ──────────────────────────────────
   function exportProfile() {
     if (!currentPlayerData) return;
@@ -3008,6 +3632,7 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   document.getElementById('compare-input').addEventListener('keydown', function(e){ if(e.key==='Enter') addComparePlayer(); });
   // Export
   document.getElementById('export-btn').addEventListener('click', exportProfile);
+  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
   // Notifications
   document.getElementById('notif-toggle').addEventListener('click', toggleNotifications);
 
@@ -3063,8 +3688,22 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   loadServerStatus();
   loadRecentSearches();
   loadFavorites();
+  document.getElementById('recent-select').addEventListener('change',function(){
+    if(this.value){document.getElementById('search-input').value=this.value;this.value='';doSearch();}
+  });
   loadDDragonData();
   connect();
+  // Restore player from URL params (?player=Name%23Tag&platform=EUW1)
+  (function(){
+    var p=new URLSearchParams(window.location.search);
+    var urlPlayer=p.get('player');
+    var urlPlatform=p.get('platform');
+    if (urlPlayer&&urlPlayer.indexOf('#')>=0) {
+      document.getElementById('search-input').value=urlPlayer;
+      if (urlPlatform) document.getElementById('region-select').value=urlPlatform;
+      doSearch();
+    }
+  }());
   // Restore notification state
   if (localStorage.getItem('lc-notif')==='1'&&'Notification' in window&&Notification.permission==='granted') {
     notifEnabled=true;
@@ -3074,6 +3713,255 @@ tr.highlight td { animation: flashGold 2.5s ease-out forwards; }
   var savedRegion=localStorage.getItem('lc-region');
   if (savedRegion) document.getElementById('region-select').value=savedRegion;
   document.getElementById('region-select').addEventListener('change', function(){ localStorage.setItem('lc-region',this.value); });
+
+  // ── Quick Win: Search Autocomplete ─────────────────
+  (function(){
+    var input=document.getElementById('search-input');
+    var dropdown=document.getElementById('ac-dropdown');
+    var acTimer=null;
+    var acIdx=-1;
+    var acItems=[];
+
+    input.addEventListener('input',function(){
+      clearTimeout(acTimer);
+      var q=input.value.trim();
+      if (q.length<2||q.indexOf('#')>=0) { dropdown.classList.remove('visible'); return; }
+      acTimer=setTimeout(function(){
+        fetch('/api/autocomplete?q='+encodeURIComponent(q))
+          .then(function(r){return r.json();})
+          .then(function(data){
+            if (!data||data.length===0) { dropdown.classList.remove('visible'); return; }
+            acItems=data; acIdx=-1;
+            var html='';
+            for (var i=0;i<data.length;i++) {
+              var p=data[i];
+              html+='<div class="ac-item" data-idx="'+i+'"><span class="ac-name">'+esc(p.game_name)+'<span class="muted">#'+esc(p.tag_line)+'</span></span><span class="ac-meta">'+(p.platform||'')+'</span></div>';
+            }
+            dropdown.innerHTML=html;
+            dropdown.classList.add('visible');
+            var items=dropdown.querySelectorAll('.ac-item');
+            for (var j=0;j<items.length;j++) {
+              (function(idx){
+                items[idx].addEventListener('mousedown',function(e){
+                  e.preventDefault();
+                  var p=acItems[idx];
+                  input.value=p.game_name+'#'+p.tag_line;
+                  if (p.platform) document.getElementById('region-select').value=p.platform;
+                  dropdown.classList.remove('visible');
+                  doSearch();
+                });
+              })(j);
+            }
+          })
+          .catch(function(){});
+      }, 250);
+    });
+
+    input.addEventListener('keydown',function(e){
+      if (!dropdown.classList.contains('visible')) return;
+      var items=dropdown.querySelectorAll('.ac-item');
+      if (e.key==='ArrowDown') { e.preventDefault(); acIdx=Math.min(acIdx+1,items.length-1); updateAcActive(items); }
+      else if (e.key==='ArrowUp') { e.preventDefault(); acIdx=Math.max(acIdx-1,-1); updateAcActive(items); }
+      else if (e.key==='Enter'&&acIdx>=0) {
+        e.preventDefault();
+        var p=acItems[acIdx];
+        input.value=p.game_name+'#'+p.tag_line;
+        if (p.platform) document.getElementById('region-select').value=p.platform;
+        dropdown.classList.remove('visible');
+        doSearch();
+      }
+      else if (e.key==='Escape') { dropdown.classList.remove('visible'); }
+    });
+
+    function updateAcActive(items) {
+      for (var i=0;i<items.length;i++) items[i].classList.toggle('active',i===acIdx);
+    }
+
+    input.addEventListener('blur',function(){ setTimeout(function(){ dropdown.classList.remove('visible'); },200); });
+  }());
+
+  // ── Quick Win: My Dashboard ─────────────────────────
+  (function(){
+    var btn=document.getElementById('my-dash-btn');
+    var saved=localStorage.getItem('lc-my-player');
+    if (saved) btn.classList.add('saved');
+
+    btn.addEventListener('click',function(){
+      if (currentPuuid&&currentPlayerData) {
+        var acc=currentPlayerData.account||{};
+        var val=acc.game_name+'#'+acc.tag_line;
+        var platform=document.getElementById('region-select').value;
+        localStorage.setItem('lc-my-player',val);
+        localStorage.setItem('lc-my-platform',platform);
+        btn.classList.add('saved');
+        showToast('Set as My Dashboard','success');
+      } else {
+        localStorage.removeItem('lc-my-player');
+        localStorage.removeItem('lc-my-platform');
+        btn.classList.remove('saved');
+        showToast('My Dashboard cleared','info');
+      }
+    });
+
+    // Auto-load on page start (only if no URL params)
+    var urlParams=new URLSearchParams(window.location.search);
+    if (!urlParams.get('player')&&saved) {
+      setTimeout(function(){
+        document.getElementById('search-input').value=saved;
+        var plat=localStorage.getItem('lc-my-platform');
+        if (plat) document.getElementById('region-select').value=plat;
+        doSearch();
+      }, 100);
+    }
+  }());
+
+  // ── Quick Win: Post-Game Quick Actions ──────────────
+  window.copyMatchResult=function(matchId, champ, k, d, a, win) {
+    var text=(win?'Victory':'Defeat')+' — '+champ+' '+k+'/'+d+'/'+a;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function(){ showToast('Copied to clipboard','success'); });
+    }
+  };
+  window.shareMatchUrl=function(matchId) {
+    var url=window.location.origin+'?match='+matchId;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function(){ showToast('Link copied','success'); });
+    }
+  };
+
+  // ── Quick Win: Compact Match Cards Toggle ───────────
+  var matchView='table';
+  (function(){
+    var btns=document.querySelectorAll('.view-toggle-btn');
+    for (var i=0;i<btns.length;i++) {
+      btns[i].addEventListener('click',function(){
+        matchView=this.getAttribute('data-view');
+        for (var j=0;j<btns.length;j++) btns[j].classList.toggle('active',btns[j].getAttribute('data-view')===matchView);
+        var tableEl=document.querySelector('#matches-section table');
+        var cardsEl=document.getElementById('match-cards-grid');
+        if (matchView==='cards') {
+          if (tableEl) tableEl.style.display='none';
+          renderMatchCards(filterMatches(currentFilter));
+          cardsEl.style.display='';
+        } else {
+          if (tableEl) tableEl.style.display='';
+          cardsEl.style.display='none';
+        }
+      });
+    }
+  }());
+
+  function renderMatchCards(matches) {
+    var grid=document.getElementById('match-cards-grid');
+    grid.innerHTML='';
+    if (!matches||matches.length===0) { grid.innerHTML='<div class="muted" style="padding:20px;text-align:center;">No matches</div>'; return; }
+    for (var i=0;i<matches.length;i++) {
+      var m=matches[i], k=m.kills||0, d=m.deaths||0, a=m.assists||0;
+      var kdaVal=d===0?'Perfect':((k+a)/d).toFixed(1);
+      var pos=m.position||'';
+      if (pos==='UTILITY') pos='SUP'; else if (pos==='BOTTOM') pos='ADC'; else if (pos==='MIDDLE') pos='MID'; else if (pos==='TOP') pos='TOP'; else if (pos==='JUNGLE') pos='JGL';
+      var card=document.createElement('div');
+      card.className='match-card-compact '+(m.win?'win':'loss');
+      var champImg=m.champion_image?'<img class="mcc-champ" src="'+esc(m.champion_image)+'" />':'';
+      var lpStr='';
+      if (m.lp_change&&m.lp_change!==0) {
+        var lpClr=m.lp_change>0?'var(--green)':'var(--red)';
+        lpStr='<span style="font-size:10px;color:'+lpClr+'">'+(m.lp_change>0?'+':'')+m.lp_change+' LP</span>';
+      }
+      card.innerHTML='<div class="mcc-top">'+champImg+'<div><div class="mcc-kda">'+k+'/'+d+'/'+a+' <span class="muted">('+kdaVal+')</span></div><div class="mcc-meta">'+esc(m.champion_name||'')+(pos?' · '+pos:'')+'</div></div></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;"><span class="muted">'+esc(queueLabel(m))+'</span><span>'+(m.cs||0)+' CS</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;"><span class="muted">'+esc(m.game_duration||'')+'</span>'+lpStr+'</div>';
+      grid.appendChild(card);
+    }
+  }
 }());
+
+  // ── Multi-Search (#10) ─────────────────────────────
+  var multiSearchVisible=false;
+  function toggleMultiSearch() {
+    multiSearchVisible=!multiSearchVisible;
+    document.getElementById('multi-search-container').style.display=multiSearchVisible?'block':'none';
+    if (multiSearchVisible) document.getElementById('multi-search-input').focus();
+  }
+  function doMultiSearch() {
+    var input=document.getElementById('multi-search-input').value.trim();
+    if (!input) return;
+    var lines=input.split('\n').filter(function(l){return l.trim().length>0;});
+    var players=lines.map(function(l){return l.trim();}).join(',');
+    var platform=document.getElementById('region-select').value;
+    var resultsEl=document.getElementById('multi-search-results');
+    resultsEl.innerHTML='<div class="muted">Scouting '+lines.length+' players...</div>';
+    fetch('/api/multi-search?players='+encodeURIComponent(players)+'&platform='+encodeURIComponent(platform))
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if (!data.players||data.players.length===0) { resultsEl.innerHTML='<div class="muted">No results</div>'; return; }
+        var html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">';
+        for (var i=0;i<data.players.length;i++) {
+          var p=data.players[i];
+          if (p.error) { html+='<div class="recent-card"><strong>'+esc(p.name)+'#'+esc(p.tag)+'</strong><div class="muted">'+esc(p.error)+'</div></div>'; continue; }
+          var tierClr={'IRON':'#8b7355','BRONZE':'#cd7f32','SILVER':'#c0c0c0','GOLD':'#ffd700','PLATINUM':'#00cec9','EMERALD':'#2ecc71','DIAMOND':'#9b59b6','MASTER':'#e74c3c','GRANDMASTER':'#e74c3c','CHALLENGER':'#f1c40f'};
+          var clr=tierClr[p.tier]||'var(--text-muted)';
+          var streakHtml='';
+          if (p.streak&&Math.abs(p.streak)>=2) { var sClr=p.streak>0?'var(--green)':'var(--red)'; streakHtml='<span style="color:'+sClr+';font-size:11px;">'+(p.streak>0?p.streak+'W':Math.abs(p.streak)+'L')+' streak</span>'; }
+          html+='<div class="recent-card" style="cursor:pointer;" onclick="document.getElementById(\'search-input\').value=\''+esc(p.name)+'#'+esc(p.tag)+'\';doSearch();">';
+          html+='<div style="font-weight:600;font-size:13px;">'+esc(p.name)+'<span class="muted">#'+esc(p.tag)+'</span></div>';
+          html+='<div style="color:'+clr+';font-size:12px;">'+(p.tier?p.tier+' '+p.rank+' '+(p.lp||0)+' LP':'Unranked')+'</div>';
+          if (p.winrate!==undefined&&p.winrate!==null) html+='<div style="font-size:11px;">WR: <strong style="color:'+(p.winrate>=50?'var(--green)':'var(--red)')+'">'+p.winrate+'%</strong>'+(p.recent_wr?' <span class="muted">Recent: '+p.recent_wr+'%</span>':'')+'</div>';
+          if (p.main_champions&&p.main_champions.length>0) html+='<div class="muted" style="font-size:10px;">'+p.main_champions.join(', ')+'</div>';
+          if (streakHtml) html+='<div>'+streakHtml+'</div>';
+          html+='</div>';
+        }
+        html+='</div>';
+        resultsEl.innerHTML=html;
+      })
+      .catch(function(err){ resultsEl.innerHTML='<div style="color:var(--red)">'+esc(err.message)+'</div>'; });
+  }
+
+  // ── Keyboard shortcut: M for multi-search ──────────
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+    if (e.key==='m'||e.key==='M') { e.preventDefault(); toggleMultiSearch(); }
+  });
+
+  // ── Pre-Game Briefing (#1) ─────────────────────────
+  function loadBriefing() {
+    if (!currentPuuid) return;
+    var platform=document.getElementById('region-select').value;
+    fetch('/api/live-game/'+currentPuuid+'/briefing?platform='+encodeURIComponent(platform))
+      .then(function(r){if(!r.ok) return null; return r.json();})
+      .then(function(data){
+        if (!data||!data.opponents) return;
+        var banner=document.getElementById('live-game-banner');
+        var briefEl=document.getElementById('live-briefing');
+        if (!briefEl) {
+          briefEl=document.createElement('div');
+          briefEl.id='live-briefing';
+          briefEl.style.cssText='margin-top:12px;padding:12px;background:rgba(200,155,60,0.05);border:1px solid var(--border);border-radius:8px;';
+          banner.appendChild(briefEl);
+        }
+        var html='<div class="ext-title">Pre-Game Briefing</div>';
+        for (var i=0;i<data.opponents.length;i++) {
+          var o=data.opponents[i];
+          html+='<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">';
+          html+='<strong>'+esc(o.champion_name)+'</strong> <span class="muted">'+esc(o.summoner_name)+'</span>';
+          if (o.tier) html+=' <span style="font-size:11px;">'+esc(o.tier)+' '+esc(o.rank||'')+'</span>';
+          if (o.champion_wr!==undefined&&o.champion_wr!==null) html+=' <span style="color:'+(o.champion_wr>=50?'var(--green)':'var(--red)')+'">'+o.champion_wr+'% on champ ('+o.champion_games+'g)</span>';
+          if (o.weaknesses&&o.weaknesses.length>0) html+='<div style="color:var(--red);font-size:11px;margin-top:2px;">Weak: '+o.weaknesses.join(' | ')+'</div>';
+          if (o.strengths&&o.strengths.length>0) html+='<div style="color:var(--green);font-size:11px;">Strong: '+o.strengths.join(' | ')+'</div>';
+          html+='</div>';
+        }
+        briefEl.innerHTML=html;
+      })
+      .catch(function(){});
+  }
+
+  // Auto-load briefing when live game is detected
+  var _origRenderLiveGame=renderLiveGame;
+  renderLiveGame=function(lg) {
+    _origRenderLiveGame(lg);
+    if (lg) setTimeout(loadBriefing, 500);
+  };
+
+  // (Quick Win code is inside the IIFE above)
 </script>
 {{end}}
